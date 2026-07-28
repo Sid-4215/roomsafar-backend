@@ -14,9 +14,11 @@ fi
 echo "EXPO_PUBLIC_API_URL=$API_URL" > .env
 echo "✅ API URL set to: $API_URL"
 
-# Install dependencies if node_modules is missing or react-native-worklets is missing
-if [ ! -d "node_modules" ] || [ ! -d "node_modules/react-native-worklets" ]; then
-  echo "📦 Installing dependencies..."
+# Install dependencies if node_modules is missing or expo version mismatch
+INSTALLED_EXPO=$(node -e "try{const p=require('./node_modules/expo/package.json');console.log(p.version)}catch(e){console.log('none')}" 2>/dev/null)
+EXPECTED_EXPO=$(node -e "const p=require('./package.json');console.log(p.dependencies.expo.replace(/[~^]/,''))" 2>/dev/null)
+if [ ! -d "node_modules" ] || [ "$INSTALLED_EXPO" = "none" ] || [[ "$INSTALLED_EXPO" != "$EXPECTED_EXPO"* ]]; then
+  echo "📦 Installing dependencies (SDK 54)..."
   npm install --legacy-peer-deps
 fi
 

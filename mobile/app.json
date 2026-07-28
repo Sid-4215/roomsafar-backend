@@ -19,6 +19,7 @@
       "expo-router",
       "expo-font"
     ],
-    "newArchEnabled": true
+    "sdkVersion": "54.0.0",
+    "newArchEnabled": false
   }
 }
