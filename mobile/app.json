@@ -20,6 +20,6 @@
       "expo-font"
     ],
     "sdkVersion": "54.0.0",
-    "newArchEnabled": false
+    "newArchEnabled": true
   }
 }
