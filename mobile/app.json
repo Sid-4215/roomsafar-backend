@@ -1,0 +1,17 @@
+{
+  "expo": {
+    "name": "RoomSafar",
+    "slug": "roomsafar",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "scheme": "roomsafar",
+    "userInterfaceStyle": "light",
+    "platforms": ["ios", "android", "web"],
+    "web": {
+      "bundler": "metro",
+      "output": "single"
+    },
+    "plugins": ["expo-router"],
+    "newArchEnabled": true
+  }
+}
