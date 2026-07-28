@@ -3,10 +3,16 @@ set -e
 
 cd "$(dirname "$0")"
 
-# With the proxy approach, the app and API are served from the same origin (port 5000).
-# No cross-origin requests → no CORS issues in the Replit preview.
-echo "EXPO_PUBLIC_API_URL=" > .env
-echo "✅ API calls will be proxied through port 5000 → localhost:8080"
+# Set the API URL to the Replit dev domain so both web and native devices
+# can reach the backend. Relative URLs don't work in native (Expo Go).
+if [ -n "$REPLIT_DEV_DOMAIN" ]; then
+  API_URL="https://$REPLIT_DEV_DOMAIN"
+else
+  API_URL="http://localhost:8080"
+fi
+
+echo "EXPO_PUBLIC_API_URL=$API_URL" > .env
+echo "✅ API URL set to: $API_URL"
 
 # Install dependencies if node_modules is missing
 if [ ! -d "node_modules" ]; then
@@ -14,14 +20,14 @@ if [ ! -d "node_modules" ]; then
   npm install --legacy-peer-deps
 fi
 
-echo "🚀 Starting Expo Metro on port 5001 (internal)..."
-npx expo start --web --port 5001 &
+echo "🚀 Starting Expo Metro on port 5001 with tunnel (supports Android & iOS via Expo Go)..."
+npx expo start --port 5001 --tunnel &
 EXPO_PID=$!
 
-# Give Metro a moment to start before accepting proxy traffic
-sleep 5
+# Give Metro time to start and establish tunnel before proxy comes up
+sleep 8
 
-echo "🔀 Starting reverse proxy on port 5000 (public)..."
+echo "🔀 Starting reverse proxy on port 5000 (public web entry point)..."
 PROXY_PORT=5000 EXPO_PORT=5001 BACKEND_PORT=8080 node proxy-server.js &
 PROXY_PID=$!
 
