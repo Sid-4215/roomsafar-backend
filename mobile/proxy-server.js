@@ -8,6 +8,9 @@
  *
  * This lets the browser talk to one origin for both the app and the API,
  * completely eliminating CORS issues in the Replit preview.
+ *
+ * The Origin header is stripped before forwarding to Metro so that
+ * Expo's CorsMiddleware does not reject the hot-reload WebSocket.
  */
 
 const http = require('http');
@@ -21,24 +24,34 @@ const proxy = httpProxy.createProxyServer({ ws: true });
 
 proxy.on('error', (err, req, res) => {
   console.error('[proxy] error:', err.message);
-  if (res && !res.headersSent) {
-    res.writeHead(502);
-    res.end('Bad Gateway');
+  // res may be a net.Socket (for WS errors) or an http.ServerResponse
+  if (res && typeof res.writeHead === 'function' && !res.headersSent) {
+    try {
+      res.writeHead(502);
+      res.end('Bad Gateway');
+    } catch (_) { /* ignore */ }
+  } else if (res && typeof res.destroy === 'function') {
+    try { res.destroy(); } catch (_) { /* ignore */ }
   }
 });
 
 const server = http.createServer((req, res) => {
   const path = req.url || '/';
   const isApi = path.startsWith('/api/') || path.startsWith('/auth/');
-  const target = isApi
-    ? `http://localhost:${BACKEND}`
-    : `http://localhost:${EXPO}`;
 
-  proxy.web(req, res, { target, changeOrigin: true });
+  if (isApi) {
+    proxy.web(req, res, { target: `http://localhost:${BACKEND}`, changeOrigin: true });
+  } else {
+    // Strip Origin so Expo Metro's CorsMiddleware doesn't reject the request
+    delete req.headers['origin'];
+    proxy.web(req, res, { target: `http://localhost:${EXPO}`, changeOrigin: true });
+  }
 });
 
 // Forward WebSocket connections (Metro hot-reload)
 server.on('upgrade', (req, socket, head) => {
+  // Strip Origin for Metro WebSocket upgrades too
+  delete req.headers['origin'];
   proxy.ws(req, socket, head, { target: `http://localhost:${EXPO}`, changeOrigin: true });
 });
 
