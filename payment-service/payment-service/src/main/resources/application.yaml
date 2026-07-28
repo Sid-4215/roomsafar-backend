@@ -1,0 +1,20 @@
+server:
+  port: 8082
+
+spring:
+  application:
+    name: payment-service
+  
+  # Razorpay Configuration
+  razorpay:
+    key: your_razorpay_key_here
+    secret: your_razorpay_secret_here
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+    enabled: true
+  instance:
+    hostname: localhost
+    prefer-ip-address: true
