@@ -20,16 +20,14 @@ spring:
       globalcors:
         cors-configurations:
           '[/**]':
-            allowed-origins:
-              - "http://localhost:3000"
-              - "http://localhost:3001"
-              - "http://127.0.0.1:3000"
-              - "http://localhost:5000"
-              - "http://127.0.0.1:5000"
+            allowed-origin-patterns:
+              - "http://localhost:*"
+              - "http://127.0.0.1:*"
               - "https://www.roomsafar.com"
               - "http://roomsafar.com"
               - "https://*.replit.dev"
               - "https://*.repl.co"
+              - "https://*.pike.replit.dev"
             allowed-methods:
               - GET
               - POST
