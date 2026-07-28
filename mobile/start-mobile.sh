@@ -17,7 +17,7 @@ echo "✅ API URL set to: ${BACKEND_URL}"
 # Install dependencies if node_modules is missing
 if [ ! -d "node_modules" ]; then
   echo "📦 Installing dependencies..."
-  npm install
+  npm install --legacy-peer-deps
 fi
 
 echo "🚀 Starting RoomSafar mobile app (web preview)..."

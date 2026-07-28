@@ -8,6 +8,16 @@ echo "============================================"
 echo "  Starting Roomsafar Backend Services"
 echo "============================================"
 
+# 0. Ensure PostgreSQL schemas exist
+echo "[0/7] Ensuring PostgreSQL schemas exist..."
+PGPASSWORD=$PGPASSWORD psql -h $PGHOST -p $PGPORT -U $PGUSER -d $PGDATABASE \
+  -c "CREATE SCHEMA IF NOT EXISTS rooms;" \
+  -c "CREATE SCHEMA IF NOT EXISTS booking;" \
+  -c "CREATE SCHEMA IF NOT EXISTS users;" \
+  -c "CREATE SCHEMA IF NOT EXISTS favorites;" \
+  -c "CREATE SCHEMA IF NOT EXISTS payment;" \
+  && echo "  Schemas ready." || echo "  Warning: schema creation failed (may already exist)"
+
 # 1. Discovery Service (Eureka) — must start first
 echo "[1/7] Starting Discovery Service (Eureka) on port 8761..."
 java $JVM_OPTS -jar discovery-service/discovery-service/target/discovery-service-0.0.1-SNAPSHOT.jar &
