@@ -1,84 +1,65 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import {
   View, FlatList, StyleSheet, ActivityIndicator,
-  RefreshControl, Alert,
+  RefreshControl, TouchableOpacity,
 } from 'react-native';
-import { Text, Button, Card, Chip, Divider } from 'react-native-paper';
+import { Text } from 'react-native-paper';
 import { useRouter } from 'expo-router';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { api } from '@/lib/api';
-import type { Booking } from '@/lib/types';
 import { useAuth } from '@/lib/auth';
+import type { Booking } from '@/lib/types';
 
-const STATUS_COLOR: Record<string, string> = {
-  PAYMENT_PENDING: '#fef3c7',
-  CONFIRMED: '#dcfce7',
-  CANCELLED: '#fee2e2',
-  COMPLETED: '#eff6ff',
-};
-const STATUS_TEXT: Record<string, string> = {
-  PAYMENT_PENDING: '#92400e',
-  CONFIRMED: '#166534',
-  CANCELLED: '#991b1b',
-  COMPLETED: '#1e40af',
+const STATUS_CONFIG: Record<string, { color: string; bg: string; icon: string; label: string }> = {
+  CONFIRMED: { color: '#00A699', bg: '#E8FAF8', icon: 'check-circle-outline', label: 'Confirmed' },
+  PENDING:   { color: '#F5A623', bg: '#FFF8EC', icon: 'clock-outline',         label: 'Pending' },
+  CANCELLED: { color: '#FF385C', bg: '#FFF0F2', icon: 'close-circle-outline',  label: 'Cancelled' },
+  COMPLETED: { color: '#717171', bg: '#F7F7F7', icon: 'archive-outline',       label: 'Completed' },
 };
 
 function BookingCard({ booking }: { booking: Booking }) {
-  const status = booking.status ?? 'UNKNOWN';
-  const bg = STATUS_COLOR[status] ?? '#f1f5f9';
-  const tc = STATUS_TEXT[status] ?? '#475569';
+  const status = STATUS_CONFIG[booking.status] ?? STATUS_CONFIG.PENDING;
+  const fmt = (d: string) => new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+
   return (
-    <Card style={styles.card} mode="elevated">
-      <Card.Content>
+    <View style={styles.card}>
+      {/* Status banner */}
+      <View style={[styles.statusBanner, { backgroundColor: status.bg }]}>
+        <MaterialCommunityIcons name={status.icon as any} size={16} color={status.color} />
+        <Text style={[styles.statusText, { color: status.color }]}>{status.label}</Text>
+      </View>
+
+      <View style={styles.cardBody}>
+        {/* Booking ID */}
         <View style={styles.cardHeader}>
-          <View>
-            <Text variant="titleSmall" style={styles.bookingId}>
-              Booking #{booking.bookingId}
-            </Text>
-            {booking.roomId ? (
-              <Text variant="bodySmall" style={styles.roomId}>Room ID: {booking.roomId}</Text>
-            ) : null}
+          <Text style={styles.bookingId}>Booking #{booking.bookingId}</Text>
+          <Text style={styles.amount}>₹{booking.amount?.toLocaleString()}</Text>
+        </View>
+
+        <Text style={styles.roomRef}>Room ID: {booking.roomId}</Text>
+
+        {/* Dates */}
+        <View style={styles.datesRow}>
+          <View style={styles.dateBox}>
+            <Text style={styles.dateLabel}>Check-in</Text>
+            <Text style={styles.dateValue}>{booking.startDate ? fmt(booking.startDate) : '—'}</Text>
           </View>
-          <Chip style={[styles.statusChip, { backgroundColor: bg }]} textStyle={[styles.statusText, { color: tc }]}>
-            {status.replace('_', ' ')}
-          </Chip>
+          <View style={styles.dateDivider}>
+            <MaterialCommunityIcons name="arrow-right" size={16} color="#CCCCCC" />
+          </View>
+          <View style={styles.dateBox}>
+            <Text style={styles.dateLabel}>Check-out</Text>
+            <Text style={styles.dateValue}>{booking.endDate ? fmt(booking.endDate) : '—'}</Text>
+          </View>
         </View>
 
-        <Divider style={{ marginVertical: 10 }} />
-
-        <View style={styles.detailRow}>
-          {booking.amount ? (
-            <View style={styles.detailItem}>
-              <Text variant="labelSmall" style={styles.label}>Amount</Text>
-              <Text variant="bodyMedium" style={styles.value}>₹{booking.amount.toLocaleString()}</Text>
-            </View>
-          ) : null}
-          {booking.startDate ? (
-            <View style={styles.detailItem}>
-              <Text variant="labelSmall" style={styles.label}>Check-in</Text>
-              <Text variant="bodyMedium" style={styles.value}>{booking.startDate}</Text>
-            </View>
-          ) : null}
-          {booking.endDate ? (
-            <View style={styles.detailItem}>
-              <Text variant="labelSmall" style={styles.label}>Check-out</Text>
-              <Text variant="bodyMedium" style={styles.value}>{booking.endDate}</Text>
-            </View>
-          ) : null}
-        </View>
-
-        {booking.createdAt ? (
-          <Text variant="bodySmall" style={styles.date}>
-            📅 {new Date(booking.createdAt).toLocaleDateString()}
+        {booking.createdAt && (
+          <Text style={styles.createdAt}>
+            Booked {new Date(booking.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
           </Text>
-        ) : null}
-
-        {booking.paymentOrderId ? (
-          <Text variant="bodySmall" style={styles.paymentId} numberOfLines={1}>
-            Payment ID: {booking.paymentOrderId}
-          </Text>
-        ) : null}
-      </Card.Content>
-    </Card>
+        )}
+      </View>
+    </View>
   );
 }
 
@@ -93,9 +74,9 @@ export default function BookingsScreen() {
   const load = useCallback(async () => {
     if (!token) { setLoading(false); return; }
     try {
-      setError('');
       const data = await api.getMyBookings();
       setBookings(data);
+      setError('');
     } catch (e: any) {
       setError(e.message || 'Failed to load bookings');
     } finally {
@@ -110,12 +91,13 @@ export default function BookingsScreen() {
 
   if (!token) {
     return (
-      <View style={styles.center}>
-        <Text style={styles.emoji}>📅</Text>
-        <Text variant="titleMedium" style={styles.title}>Sign in to view bookings</Text>
-        <Button mode="contained" onPress={() => router.replace('/(auth)/login')} style={styles.btn}>
-          Sign In
-        </Button>
+      <View style={styles.guestContainer}>
+        <Text style={styles.guestEmoji}>🗓️</Text>
+        <Text style={styles.guestTitle}>Sign in to view trips</Text>
+        <Text style={styles.guestSubtitle}>Your booking history will appear here.</Text>
+        <TouchableOpacity style={styles.signInBtn} onPress={() => router.replace('/(auth)/login')}>
+          <Text style={styles.signInBtnText}>Sign in</Text>
+        </TouchableOpacity>
       </View>
     );
   }
@@ -123,7 +105,7 @@ export default function BookingsScreen() {
   if (loading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator size="large" color="#1e40af" />
+        <ActivityIndicator size="large" color="#FF385C" />
       </View>
     );
   }
@@ -131,9 +113,11 @@ export default function BookingsScreen() {
   if (error) {
     return (
       <View style={styles.center}>
-        <Text style={styles.emoji}>⚠️</Text>
-        <Text style={{ color: '#ef4444', marginBottom: 16 }}>{error}</Text>
-        <Button onPress={load} mode="outlined">Retry</Button>
+        <Text style={styles.errorEmoji}>⚠️</Text>
+        <Text style={styles.errorText}>{error}</Text>
+        <TouchableOpacity style={styles.retryBtn} onPress={load}>
+          <Text style={styles.retryText}>Retry</Text>
+        </TouchableOpacity>
       </View>
     );
   }
@@ -143,41 +127,132 @@ export default function BookingsScreen() {
       data={bookings}
       keyExtractor={(item) => String(item.bookingId)}
       renderItem={({ item }) => <BookingCard booking={item} />}
-      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
-      contentContainerStyle={styles.list}
-      ListEmptyComponent={
-        <View style={styles.center}>
-          <Text style={styles.emoji}>🏠</Text>
-          <Text variant="titleMedium" style={styles.title}>No bookings yet</Text>
-          <Text variant="bodyMedium" style={styles.subtitle}>
-            Browse rooms and book your stay to get started.
-          </Text>
-          <Button mode="contained" onPress={() => router.push('/(tabs)/')} style={styles.btn}>
-            Browse Rooms
-          </Button>
+      refreshControl={
+        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#FF385C" />
+      }
+      contentContainerStyle={bookings.length === 0 ? styles.emptyContainer : styles.list}
+      ListHeaderComponent={
+        <View style={styles.header}>
+          <Text style={styles.headerTitle}>My Trips</Text>
+          <Text style={styles.headerSubtitle}>{bookings.length} booking{bookings.length !== 1 ? 's' : ''}</Text>
         </View>
       }
+      ListEmptyComponent={
+        <View style={styles.emptyState}>
+          <Text style={styles.emptyEmoji}>✈️</Text>
+          <Text style={styles.emptyTitle}>No trips yet</Text>
+          <Text style={styles.emptySubtitle}>
+            Browse rooms and book your first stay to get started.
+          </Text>
+          <TouchableOpacity style={styles.browseBtn} onPress={() => router.push('/(tabs)/')}>
+            <Text style={styles.browseBtnText}>Browse Rooms</Text>
+          </TouchableOpacity>
+        </View>
+      }
+      showsVerticalScrollIndicator={false}
     />
   );
 }
 
 const styles = StyleSheet.create({
-  list: { backgroundColor: '#f8fafc', paddingHorizontal: 16, paddingVertical: 12, flexGrow: 1 },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 32, backgroundColor: '#f8fafc' },
-  emoji: { fontSize: 56, marginBottom: 12 },
-  title: { fontWeight: '700', color: '#1e293b', marginBottom: 8, textAlign: 'center' },
-  subtitle: { color: '#64748b', textAlign: 'center', marginBottom: 24 },
-  btn: { borderRadius: 12 },
-  card: { marginBottom: 12, borderRadius: 16, backgroundColor: '#fff' },
-  cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
-  bookingId: { fontWeight: '700', color: '#1e293b' },
-  roomId: { color: '#64748b', marginTop: 2 },
-  statusChip: { height: 28 },
-  statusText: { fontSize: 11, fontWeight: '700' },
-  detailRow: { flexDirection: 'row', gap: 20, marginBottom: 8 },
-  detailItem: {},
-  label: { color: '#94a3b8', marginBottom: 2 },
-  value: { color: '#1e293b', fontWeight: '600' },
-  date: { color: '#94a3b8', marginTop: 4 },
-  paymentId: { color: '#94a3b8', marginTop: 2 },
+  header: {
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 16,
+    paddingTop: 56,
+    paddingBottom: 20,
+  },
+  headerTitle: { fontSize: 26, fontWeight: '800', color: '#222222', letterSpacing: -0.3 },
+  headerSubtitle: { fontSize: 14, color: '#717171', marginTop: 3 },
+  list: { backgroundColor: '#F7F7F7', paddingHorizontal: 16, paddingBottom: 32 },
+  emptyContainer: { flex: 1, backgroundColor: '#F7F7F7' },
+  card: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    marginTop: 12,
+    overflow: 'hidden',
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOpacity: 0.06,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 3 },
+  },
+  statusBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+  },
+  statusText: { fontSize: 12, fontWeight: '700' },
+  cardBody: { padding: 14 },
+  cardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  bookingId: { fontSize: 16, fontWeight: '800', color: '#222222' },
+  amount: { fontSize: 16, fontWeight: '800', color: '#FF385C' },
+  roomRef: { fontSize: 13, color: '#717171', marginBottom: 14 },
+  datesRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F7F7F7',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 10,
+  },
+  dateBox: { flex: 1 },
+  dateLabel: { fontSize: 11, color: '#AAAAAA', fontWeight: '600', marginBottom: 3 },
+  dateValue: { fontSize: 13, fontWeight: '700', color: '#222222' },
+  dateDivider: { paddingHorizontal: 8 },
+  createdAt: { fontSize: 12, color: '#AAAAAA' },
+  center: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#F7F7F7',
+    gap: 12,
+  },
+  errorEmoji: { fontSize: 44 },
+  errorText: { color: '#FF385C', fontSize: 14, textAlign: 'center' },
+  retryBtn: {
+    backgroundColor: '#FF385C',
+    borderRadius: 12,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+  },
+  retryText: { color: '#FFFFFF', fontWeight: '700' },
+  emptyState: {
+    alignItems: 'center',
+    padding: 40,
+    paddingTop: 60,
+  },
+  emptyEmoji: { fontSize: 56, marginBottom: 16 },
+  emptyTitle: { fontSize: 20, fontWeight: '800', color: '#222222', marginBottom: 8 },
+  emptySubtitle: { fontSize: 14, color: '#717171', textAlign: 'center', marginBottom: 24, lineHeight: 20 },
+  browseBtn: {
+    backgroundColor: '#FF385C',
+    borderRadius: 14,
+    paddingHorizontal: 28,
+    paddingVertical: 14,
+  },
+  browseBtnText: { color: '#FFFFFF', fontWeight: '700', fontSize: 15 },
+  guestContainer: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 32,
+  },
+  guestEmoji: { fontSize: 64, marginBottom: 16 },
+  guestTitle: { fontSize: 22, fontWeight: '800', color: '#222222', marginBottom: 8 },
+  guestSubtitle: { fontSize: 14, color: '#717171', textAlign: 'center', marginBottom: 28 },
+  signInBtn: {
+    backgroundColor: '#FF385C',
+    borderRadius: 14,
+    paddingHorizontal: 32,
+    paddingVertical: 14,
+  },
+  signInBtnText: { color: '#FFFFFF', fontWeight: '700', fontSize: 15 },
 });

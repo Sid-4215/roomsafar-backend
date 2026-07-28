@@ -1,85 +1,126 @@
 import { Tabs } from 'expo-router';
+import { View, StyleSheet } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
 
-function TabIcon({ name, color, size }: { name: IconName; color: string; size: number }) {
-  return <MaterialCommunityIcons name={name} color={color} size={size} />;
+function TabIcon({ name, color, focused }: { name: IconName; color: string; focused: boolean }) {
+  return (
+    <View style={[styles.iconWrap, focused && styles.iconWrapActive]}>
+      <MaterialCommunityIcons name={name} size={22} color={color} />
+    </View>
+  );
 }
 
-export default function TabsLayout() {
+export default function TabLayout() {
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: '#1e40af',
-        tabBarInactiveTintColor: '#94a3b8',
-        tabBarStyle: {
-          backgroundColor: '#fff',
-          borderTopColor: '#e2e8f0',
-          elevation: 8,
-          shadowColor: '#000',
-          shadowOpacity: 0.08,
-          shadowRadius: 12,
-          shadowOffset: { width: 0, height: -2 },
-          height: 60,
-          paddingBottom: 8,
-        },
-        tabBarLabelStyle: { fontSize: 10, fontWeight: '600' },
-        headerStyle: { backgroundColor: '#fff' },
-        headerTitleStyle: { color: '#1e293b', fontWeight: '700' },
-        headerShadowVisible: false,
+        headerShown: false,
+        tabBarActiveTintColor: '#FF385C',
+        tabBarInactiveTintColor: '#717171',
+        tabBarStyle: styles.tabBar,
+        tabBarLabelStyle: styles.tabLabel,
+        tabBarItemStyle: styles.tabItem,
       }}
     >
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Home',
-          headerShown: false,
-          tabBarIcon: ({ color, size }) => <TabIcon name="home-outline" color={color} size={size} />,
+          title: 'Explore',
+          tabBarIcon: ({ color, focused }) => (
+            <TabIcon name="compass-outline" color={color} focused={focused} />
+          ),
         }}
       />
       <Tabs.Screen
         name="search"
         options={{
           title: 'Search',
-          tabBarIcon: ({ color, size }) => <TabIcon name="magnify" color={color} size={size} />,
+          tabBarIcon: ({ color, focused }) => (
+            <TabIcon name="magnify" color={color} focused={focused} />
+          ),
         }}
       />
       <Tabs.Screen
         name="roomiesync"
         options={{
           title: 'RoomieSync',
-          tabBarIcon: ({ color, size }) => <TabIcon name="account-group-outline" color={color} size={size} />,
+          tabBarIcon: ({ color, focused }) => (
+            <TabIcon name="account-group-outline" color={color} focused={focused} />
+          ),
         }}
       />
       <Tabs.Screen
         name="bookings"
         options={{
-          title: 'Bookings',
-          tabBarIcon: ({ color, size }) => <TabIcon name="calendar-check-outline" color={color} size={size} />,
+          title: 'Trips',
+          tabBarIcon: ({ color, focused }) => (
+            <TabIcon name="calendar-check-outline" color={color} focused={focused} />
+          ),
         }}
       />
       <Tabs.Screen
         name="favorites"
         options={{
           title: 'Saved',
-          tabBarIcon: ({ color, size }) => <TabIcon name="heart-outline" color={color} size={size} />,
+          tabBarIcon: ({ color, focused }) => (
+            <TabIcon name="heart-outline" color={color} focused={focused} />
+          ),
         }}
       />
       <Tabs.Screen
         name="my-rooms"
         options={{
-          title: 'My Rooms',
-          tabBarIcon: ({ color, size }) => <TabIcon name="home-edit-outline" color={color} size={size} />,
+          title: 'Host',
+          tabBarIcon: ({ color, focused }) => (
+            <TabIcon name="home-edit-outline" color={color} focused={focused} />
+          ),
         }}
       />
       <Tabs.Screen
         name="profile"
         options={{
           title: 'Profile',
-          tabBarIcon: ({ color, size }) => <TabIcon name="account-outline" color={color} size={size} />,
+          tabBarIcon: ({ color, focused }) => (
+            <TabIcon name="account-circle-outline" color={color} focused={focused} />
+          ),
         }}
       />
     </Tabs>
   );
 }
+
+const styles = StyleSheet.create({
+  tabBar: {
+    backgroundColor: '#FFFFFF',
+    borderTopWidth: 1,
+    borderTopColor: '#F0F0F0',
+    height: 72,
+    paddingBottom: 10,
+    paddingTop: 6,
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOpacity: 0.06,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: -4 },
+  },
+  tabLabel: {
+    fontSize: 10,
+    fontWeight: '600',
+    marginTop: 2,
+  },
+  tabItem: {
+    paddingVertical: 4,
+  },
+  iconWrap: {
+    width: 32,
+    height: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 10,
+  },
+  iconWrapActive: {
+    backgroundColor: '#FFF0F2',
+  },
+});

@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import {
   View, StyleSheet, KeyboardAvoidingView,
-  Platform, ScrollView, TouchableOpacity,
+  Platform, ScrollView, TouchableOpacity, Image,
 } from 'react-native';
-import { Text, TextInput, Button, HelperText } from 'react-native-paper';
+import { Text, TextInput } from 'react-native-paper';
 import { useRouter } from 'expo-router';
 import { useAuth } from '@/lib/auth';
 
@@ -18,7 +18,7 @@ export default function LoginScreen() {
 
   const handleLogin = async () => {
     if (!email.trim() || !password.trim()) {
-      setError('Please fill in all fields.');
+      setError('Please enter your email and password.');
       return;
     }
     setError('');
@@ -26,7 +26,7 @@ export default function LoginScreen() {
     try {
       await login(email.trim(), password);
     } catch (e: any) {
-      setError(e.message || 'Login failed. Please try again.');
+      setError(e.message || 'Sign in failed. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -37,28 +37,38 @@ export default function LoginScreen() {
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <ScrollView contentContainerStyle={styles.inner} keyboardShouldPersistTaps="handled">
-        {/* Header */}
-        <View style={styles.header}>
-          <Text style={styles.logo}>🏠</Text>
-          <Text variant="headlineMedium" style={styles.title}>RoomSafar</Text>
-          <Text variant="bodyMedium" style={styles.subtitle}>Find your perfect room</Text>
+      <ScrollView contentContainerStyle={styles.inner} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+        {/* Hero */}
+        <View style={styles.heroSection}>
+          <View style={styles.logoCircle}>
+            <Text style={styles.logoEmoji}>🏠</Text>
+          </View>
+          <Text style={styles.brand}>RoomSafar</Text>
+          <Text style={styles.tagline}>Find your perfect room, anywhere.</Text>
         </View>
 
-        {/* Form */}
-        <View style={styles.form}>
-          <Text variant="headlineSmall" style={styles.formTitle}>Welcome back</Text>
+        {/* Form card */}
+        <View style={styles.formCard}>
+          <Text style={styles.formTitle}>Welcome back</Text>
+          <Text style={styles.formSubtitle}>Sign in to continue</Text>
+
+          {error ? (
+            <View style={styles.errorBox}>
+              <Text style={styles.errorText}>{error}</Text>
+            </View>
+          ) : null}
 
           <TextInput
             label="Email address"
             value={email}
             onChangeText={setEmail}
-            keyboardType="email-address"
             autoCapitalize="none"
-            autoComplete="email"
+            keyboardType="email-address"
             mode="outlined"
             style={styles.input}
-            left={<TextInput.Icon icon="email-outline" />}
+            outlineColor="#DDDDDD"
+            activeOutlineColor="#FF385C"
+            outlineStyle={{ borderRadius: 12 }}
           />
 
           <TextInput
@@ -68,35 +78,37 @@ export default function LoginScreen() {
             secureTextEntry={!showPass}
             mode="outlined"
             style={styles.input}
-            left={<TextInput.Icon icon="lock-outline" />}
+            outlineColor="#DDDDDD"
+            activeOutlineColor="#FF385C"
+            outlineStyle={{ borderRadius: 12 }}
             right={
               <TextInput.Icon
-                icon={showPass ? 'eye-off' : 'eye'}
+                icon={showPass ? 'eye-off-outline' : 'eye-outline'}
                 onPress={() => setShowPass(!showPass)}
+                color="#717171"
               />
             }
           />
 
-          {error ? <HelperText type="error" visible>{error}</HelperText> : null}
-
-          <Button
-            mode="contained"
+          <TouchableOpacity
+            style={[styles.ctaButton, loading && styles.ctaButtonDisabled]}
             onPress={handleLogin}
-            loading={loading}
             disabled={loading}
-            style={styles.button}
-            contentStyle={styles.buttonContent}
-            labelStyle={styles.buttonLabel}
+            activeOpacity={0.85}
           >
-            Sign In
-          </Button>
+            <Text style={styles.ctaText}>{loading ? 'Signing in…' : 'Sign in'}</Text>
+          </TouchableOpacity>
 
-          <View style={styles.footer}>
-            <Text variant="bodyMedium" style={styles.footerText}>
-              Don't have an account?{' '}
-            </Text>
+          <View style={styles.dividerRow}>
+            <View style={styles.dividerLine} />
+            <Text style={styles.dividerText}>or</Text>
+            <View style={styles.dividerLine} />
+          </View>
+
+          <View style={styles.signupRow}>
+            <Text style={styles.signupText}>Don't have an account? </Text>
             <TouchableOpacity onPress={() => router.replace('/(auth)/register')}>
-              <Text variant="bodyMedium" style={styles.link}>Sign up</Text>
+              <Text style={styles.signupLink}>Sign up</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -106,28 +118,99 @@ export default function LoginScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f8fafc' },
-  inner: { flexGrow: 1, justifyContent: 'center', padding: 24 },
-  header: { alignItems: 'center', marginBottom: 40 },
-  logo: { fontSize: 56, marginBottom: 8 },
-  title: { color: '#1e40af', fontWeight: '800', letterSpacing: -0.5 },
-  subtitle: { color: '#64748b', marginTop: 4 },
-  form: {
-    backgroundColor: '#fff',
+  container: { flex: 1, backgroundColor: '#FFFFFF' },
+  inner: { flexGrow: 1, padding: 24, paddingTop: 60 },
+  heroSection: {
+    alignItems: 'center',
+    marginBottom: 40,
+  },
+  logoCircle: {
+    width: 80,
+    height: 80,
     borderRadius: 24,
-    padding: 24,
+    backgroundColor: '#FFF0F2',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
     elevation: 2,
-    shadowColor: '#000',
-    shadowOpacity: 0.06,
+    shadowColor: '#FF385C',
+    shadowOpacity: 0.15,
     shadowRadius: 12,
     shadowOffset: { width: 0, height: 4 },
   },
-  formTitle: { fontWeight: '700', color: '#1e293b', marginBottom: 20 },
-  input: { marginBottom: 12, backgroundColor: '#fff' },
-  button: { marginTop: 8, borderRadius: 12 },
-  buttonContent: { paddingVertical: 6 },
-  buttonLabel: { fontSize: 16, fontWeight: '700' },
-  footer: { flexDirection: 'row', justifyContent: 'center', marginTop: 20 },
-  footerText: { color: '#64748b' },
-  link: { color: '#1e40af', fontWeight: '700' },
+  logoEmoji: { fontSize: 38 },
+  brand: {
+    fontSize: 32,
+    fontWeight: '800',
+    color: '#FF385C',
+    letterSpacing: -0.5,
+    marginBottom: 6,
+  },
+  tagline: {
+    fontSize: 15,
+    color: '#717171',
+    textAlign: 'center',
+  },
+  formCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
+    padding: 24,
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOpacity: 0.08,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 6 },
+    borderWidth: 1,
+    borderColor: '#F0F0F0',
+  },
+  formTitle: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: '#222222',
+    marginBottom: 4,
+  },
+  formSubtitle: {
+    fontSize: 14,
+    color: '#717171',
+    marginBottom: 24,
+  },
+  errorBox: {
+    backgroundColor: '#FFF2F4',
+    borderRadius: 10,
+    padding: 12,
+    marginBottom: 16,
+    borderLeftWidth: 3,
+    borderLeftColor: '#FF385C',
+  },
+  errorText: { color: '#CC1432', fontSize: 13, fontWeight: '500' },
+  input: { marginBottom: 14, backgroundColor: '#FFFFFF' },
+  ctaButton: {
+    backgroundColor: '#FF385C',
+    borderRadius: 12,
+    paddingVertical: 16,
+    alignItems: 'center',
+    marginTop: 4,
+    elevation: 2,
+    shadowColor: '#FF385C',
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
+  },
+  ctaButtonDisabled: { opacity: 0.65 },
+  ctaText: { color: '#FFFFFF', fontSize: 16, fontWeight: '700', letterSpacing: 0.2 },
+  dividerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 20,
+    gap: 10,
+  },
+  dividerLine: { flex: 1, height: 1, backgroundColor: '#EBEBEB' },
+  dividerText: { color: '#AAAAAA', fontSize: 13, fontWeight: '500' },
+  signupRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  signupText: { color: '#717171', fontSize: 14 },
+  signupLink: { color: '#FF385C', fontWeight: '700', fontSize: 14 },
 });

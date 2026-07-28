@@ -8,12 +8,13 @@ const theme = {
   ...MD3LightTheme,
   colors: {
     ...MD3LightTheme.colors,
-    primary: '#1e40af',
-    secondary: '#f59e0b',
-    background: '#f8fafc',
-    surface: '#ffffff',
-    surfaceVariant: '#f1f5f9',
-    onPrimary: '#ffffff',
+    primary: '#FF385C',
+    secondary: '#00A699',
+    background: '#FFFFFF',
+    surface: '#FFFFFF',
+    surfaceVariant: '#F7F7F7',
+    onPrimary: '#FFFFFF',
+    outline: '#DDDDDD',
   },
 };
 
@@ -40,20 +41,17 @@ function RootLayoutNav() {
         <Stack.Screen name="(tabs)" />
         <Stack.Screen
           name="room/[id]"
-          options={{
-            headerShown: true,
-            headerTitle: 'Room Details',
-            headerStyle: { backgroundColor: '#fff' },
-            headerTintColor: '#1e40af',
-          }}
+          options={{ headerShown: false }}
         />
         <Stack.Screen
           name="room/add"
           options={{
             headerShown: true,
-            headerTitle: 'List a Room',
-            headerStyle: { backgroundColor: '#fff' },
-            headerTintColor: '#1e40af',
+            headerTitle: 'List Your Room',
+            headerStyle: { backgroundColor: '#FFFFFF' },
+            headerTintColor: '#222222',
+            headerTitleStyle: { fontWeight: '700', fontSize: 18 },
+            headerShadowVisible: false,
           }}
         />
         <Stack.Screen
@@ -61,8 +59,10 @@ function RootLayoutNav() {
           options={{
             headerShown: true,
             headerTitle: 'Edit Listing',
-            headerStyle: { backgroundColor: '#fff' },
-            headerTintColor: '#1e40af',
+            headerStyle: { backgroundColor: '#FFFFFF' },
+            headerTintColor: '#222222',
+            headerTitleStyle: { fontWeight: '700', fontSize: 18 },
+            headerShadowVisible: false,
           }}
         />
       </Stack>

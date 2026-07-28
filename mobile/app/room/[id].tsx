@@ -1,20 +1,30 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import {
   View, ScrollView, StyleSheet, Image,
-  TouchableOpacity, Linking, ActivityIndicator, Alert,
+  TouchableOpacity, Linking, ActivityIndicator,
+  Alert, Dimensions, FlatList,
 } from 'react-native';
-import { Text, Chip, Button, Divider, Snackbar } from 'react-native-paper';
-import { useLocalSearchParams } from 'expo-router';
+import { Text } from 'react-native-paper';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { api } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import type { Room } from '@/lib/types';
 
+const { width: SCREEN_W } = Dimensions.get('window');
+const IMG_H = 320;
 const PLACEHOLDER = 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=800&q=80';
+
+const FURNISHED_LABEL: Record<string, string> = {
+  FURNISHED: 'Furnished',
+  SEMI_FURNISHED: 'Semi-furnished',
+  UNFURNISHED: 'Unfurnished',
+};
 
 export default function RoomDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { token } = useAuth();
+  const router = useRouter();
 
   const [room, setRoom] = useState<Room | null>(null);
   const [loading, setLoading] = useState(true);
@@ -22,7 +32,7 @@ export default function RoomDetailScreen() {
   const [isFav, setIsFav] = useState(false);
   const [favLoading, setFavLoading] = useState(false);
   const [booking, setBooking] = useState(false);
-  const [snack, setSnack] = useState('');
+  const [snackMsg, setSnackMsg] = useState('');
   const [imageIdx, setImageIdx] = useState(0);
 
   useEffect(() => {
@@ -42,32 +52,36 @@ export default function RoomDetailScreen() {
     })();
   }, [id, token]);
 
+  const showSnack = (msg: string) => {
+    setSnackMsg(msg);
+    setTimeout(() => setSnackMsg(''), 3000);
+  };
+
   const toggleFav = async () => {
-    if (!token) { setSnack('Sign in to save rooms'); return; }
+    if (!token) { showSnack('Sign in to save rooms'); return; }
     if (!room) return;
     setFavLoading(true);
     try {
       if (isFav) {
         await api.removeFavorite(room.id);
         setIsFav(false);
-        setSnack('Removed from saved');
+        showSnack('Removed from saved');
       } else {
         await api.addFavorite(room.id);
         setIsFav(true);
-        setSnack('Saved to favourites ❤️');
+        showSnack('Saved to favourites ❤️');
       }
     } catch (e: any) {
-      setSnack(e.message || 'Something went wrong');
+      showSnack(e.message || 'Something went wrong');
     } finally {
       setFavLoading(false);
     }
   };
 
   const handleBook = async () => {
-    if (!token) { setSnack('Sign in to book this room'); return; }
+    if (!token) { showSnack('Sign in to book this room'); return; }
     if (!room) return;
 
-    // Pick move-in date (today + 1 day default, move-out + 30 days)
     const today = new Date();
     const startDate = new Date(today); startDate.setDate(today.getDate() + 1);
     const endDate = new Date(startDate); endDate.setDate(startDate.getDate() + 30);
@@ -81,9 +95,9 @@ export default function RoomDetailScreen() {
         startDate: fmt(startDate),
         endDate: fmt(endDate),
       });
-      setSnack(`✅ Booking #${result.bookingId} created! Check-in: ${fmt(startDate)}`);
+      showSnack(`✅ Booking #${result.bookingId} confirmed!`);
     } catch (e: any) {
-      setSnack(e.message || 'Booking failed');
+      showSnack(e.message || 'Booking failed');
     } finally {
       setBooking(false);
     }
@@ -92,17 +106,14 @@ export default function RoomDetailScreen() {
   const openContact = (type: 'whatsapp' | 'phone', value?: string) => {
     if (!value) return;
     const num = value.replace(/\D/g, '');
-    const url =
-      type === 'whatsapp'
-        ? `https://wa.me/${num}`
-        : `tel:${num}`;
+    const url = type === 'whatsapp' ? `https://wa.me/${num}` : `tel:${num}`;
     Linking.openURL(url);
   };
 
   if (loading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator size="large" color="#1e40af" />
+        <ActivityIndicator size="large" color="#FF385C" />
       </View>
     );
   }
@@ -110,7 +121,11 @@ export default function RoomDetailScreen() {
   if (error || !room) {
     return (
       <View style={styles.center}>
-        <Text style={{ color: '#ef4444' }}>{error || 'Room not found'}</Text>
+        <Text style={styles.errorEmoji}>⚠️</Text>
+        <Text style={styles.errorText}>{error || 'Room not found'}</Text>
+        <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
+          <Text style={styles.backBtnText}>Go back</Text>
+        </TouchableOpacity>
       </View>
     );
   }
@@ -120,215 +135,434 @@ export default function RoomDetailScreen() {
   const addressStr = [addr?.line1, addr?.area, addr?.city, addr?.state, addr?.pincode]
     .filter(Boolean)
     .join(', ');
+  const furnished = FURNISHED_LABEL[room.furnished ?? ''] ?? room.furnished ?? '';
 
   return (
-    <>
-      <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-        {/* Image gallery */}
-        <View style={styles.imageContainer}>
-          <Image source={{ uri: images[imageIdx] ?? PLACEHOLDER }} style={styles.image} resizeMode="cover" />
+    <View style={styles.container}>
+      <ScrollView showsVerticalScrollIndicator={false}>
+        {/* Photo gallery */}
+        <View style={styles.gallery}>
+          <FlatList
+            data={images}
+            horizontal
+            pagingEnabled
+            showsHorizontalScrollIndicator={false}
+            keyExtractor={(_, i) => String(i)}
+            onMomentumScrollEnd={(e) => {
+              setImageIdx(Math.round(e.nativeEvent.contentOffset.x / SCREEN_W));
+            }}
+            renderItem={({ item }) => (
+              <Image source={{ uri: item }} style={styles.galleryImage} resizeMode="cover" />
+            )}
+          />
+
+          {/* Overlay nav */}
+          <View style={styles.galleryOverlay}>
+            <TouchableOpacity style={styles.galleryBack} onPress={() => router.back()}>
+              <MaterialCommunityIcons name="arrow-left" size={22} color="#222222" />
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.galleryFav} onPress={toggleFav}>
+              <MaterialCommunityIcons
+                name={isFav ? 'heart' : 'heart-outline'}
+                size={22}
+                color={isFav ? '#FF385C' : '#222222'}
+              />
+            </TouchableOpacity>
+          </View>
+
+          {/* Dot indicator */}
           {images.length > 1 && (
             <View style={styles.dots}>
               {images.map((_, i) => (
-                <TouchableOpacity key={i} onPress={() => setImageIdx(i)}>
-                  <View style={[styles.dot, i === imageIdx && styles.dotActive]} />
-                </TouchableOpacity>
+                <View
+                  key={i}
+                  style={[styles.dot, i === imageIdx && styles.dotActive]}
+                />
               ))}
             </View>
           )}
-          {/* Fav button over image */}
-          <TouchableOpacity style={styles.favBtn} onPress={toggleFav} disabled={favLoading}>
-            <MaterialCommunityIcons
-              name={isFav ? 'heart' : 'heart-outline'}
-              size={24}
-              color={isFav ? '#ef4444' : '#fff'}
-            />
-          </TouchableOpacity>
+
+          {/* Photo count */}
+          <View style={styles.photoCount}>
+            <MaterialCommunityIcons name="image-multiple-outline" size={13} color="#FFFFFF" />
+            <Text style={styles.photoCountText}>{imageIdx + 1}/{images.length}</Text>
+          </View>
         </View>
 
-        <View style={styles.body}>
-          {/* Price row */}
-          <View style={styles.priceRow}>
-            <View>
-              <Text variant="headlineMedium" style={styles.price}>
-                ₹{room.rent.toLocaleString()}
-                <Text variant="bodyMedium" style={styles.perMonth}>/month</Text>
-              </Text>
-              {room.deposit > 0 && (
-                <Text variant="bodySmall" style={styles.deposit}>
-                  Deposit: ₹{room.deposit.toLocaleString()}
-                </Text>
-              )}
+        {/* Main content */}
+        <View style={styles.content}>
+          {/* Title row */}
+          <View style={styles.titleRow}>
+            <View style={styles.typeTag}>
+              <Text style={styles.typeTagText}>{room.type}</Text>
             </View>
-            <Chip style={styles.typeChip}>{room.type}</Chip>
+            {furnished ? (
+              <View style={styles.furnishedTag}>
+                <Text style={styles.furnishedTagText}>{furnished}</Text>
+              </View>
+            ) : null}
           </View>
 
-          {/* Tags */}
-          <View style={styles.tags}>
-            {room.furnished && (
-              <Chip compact style={styles.tag}>
-                {room.furnished === 'FURNISHED' ? '🛋️ Furnished'
-                  : room.furnished === 'SEMI_FURNISHED' ? '🪑 Semi-furnished'
-                  : '📦 Unfurnished'}
-              </Chip>
-            )}
-            {room.gender && (
-              <Chip compact style={styles.tag}>
-                {room.gender === 'MALE' ? '👦 Boys' : room.gender === 'FEMALE' ? '👧 Girls' : '👥 Any'}
-              </Chip>
-            )}
-            {room.brokerageRequired && (
-              <Chip compact style={[styles.tag, { backgroundColor: '#fef3c7' }]}>
-                Brokerage ₹{(room.brokerageAmount ?? 0).toLocaleString()}
-              </Chip>
-            )}
+          {/* Price */}
+          <View style={styles.priceRow}>
+            <Text style={styles.price}>
+              ₹{room.rent.toLocaleString()}
+              <Text style={styles.pricePer}> / month</Text>
+            </Text>
+            {room.deposit ? (
+              <Text style={styles.deposit}>+ ₹{room.deposit.toLocaleString()} deposit</Text>
+            ) : null}
           </View>
 
-          <Divider style={styles.divider} />
-
-          {/* Address */}
+          {/* Location */}
           {addressStr ? (
-            <View style={styles.row}>
-              <MaterialCommunityIcons name="map-marker-outline" size={18} color="#1e40af" />
-              <Text variant="bodyMedium" style={styles.rowText}>{addressStr}</Text>
+            <View style={styles.locationRow}>
+              <MaterialCommunityIcons name="map-marker-outline" size={16} color="#FF385C" />
+              <Text style={styles.locationText}>{addressStr}</Text>
             </View>
           ) : null}
+
+          {/* Quick info row */}
+          <View style={styles.infoGrid}>
+            {room.gender && (
+              <View style={styles.infoItem}>
+                <MaterialCommunityIcons name="account-outline" size={20} color="#FF385C" />
+                <Text style={styles.infoLabel}>For</Text>
+                <Text style={styles.infoValue}>
+                  {room.gender === 'BOYS' ? 'Boys' :
+                   room.gender === 'GIRLS' ? 'Girls' : 'Anyone'}
+                </Text>
+              </View>
+            )}
+            {room.brokerageRequired !== undefined && (
+              <View style={styles.infoItem}>
+                <MaterialCommunityIcons name="handshake-outline" size={20} color="#FF385C" />
+                <Text style={styles.infoLabel}>Brokerage</Text>
+                <Text style={styles.infoValue}>{room.brokerageRequired ? 'Yes' : 'None'}</Text>
+              </View>
+            )}
+            {room.deposit ? (
+              <View style={styles.infoItem}>
+                <MaterialCommunityIcons name="bank-outline" size={20} color="#FF385C" />
+                <Text style={styles.infoLabel}>Deposit</Text>
+                <Text style={styles.infoValue}>₹{(room.deposit / 1000).toFixed(0)}k</Text>
+              </View>
+            ) : null}
+          </View>
+
+          {/* Divider */}
+          <View style={styles.divider} />
 
           {/* Description */}
           {room.description ? (
             <>
-              <Text variant="titleSmall" style={styles.sectionTitle}>About this room</Text>
-              <Text variant="bodyMedium" style={styles.description}>{room.description}</Text>
+              <Text style={styles.sectionTitle}>About this room</Text>
+              <Text style={styles.description}>{room.description}</Text>
+              <View style={styles.divider} />
             </>
           ) : null}
 
           {/* Amenities */}
-          {room.amenities?.length > 0 && (
+          {room.amenities?.length ? (
             <>
-              <Text variant="titleSmall" style={styles.sectionTitle}>Amenities</Text>
-              <View style={styles.amenities}>
+              <Text style={styles.sectionTitle}>Amenities</Text>
+              <View style={styles.amenitiesGrid}>
                 {room.amenities.map((a) => (
-                  <Chip key={a} compact style={styles.amenityChip} textStyle={styles.amenityText}>
-                    {a}
-                  </Chip>
+                  <View key={a} style={styles.amenityItem}>
+                    <MaterialCommunityIcons name="check-circle" size={16} color="#00A699" />
+                    <Text style={styles.amenityText}>{a}</Text>
+                  </View>
                 ))}
               </View>
+              <View style={styles.divider} />
+            </>
+          ) : null}
+
+          {/* Contact */}
+          {(room.phone || room.whatsapp) && (
+            <>
+              <Text style={styles.sectionTitle}>Contact host</Text>
+              <View style={styles.contactRow}>
+                {room.phone && (
+                  <TouchableOpacity
+                    style={styles.contactBtn}
+                    onPress={() => openContact('phone', room.phone)}
+                  >
+                    <MaterialCommunityIcons name="phone-outline" size={20} color="#222222" />
+                    <Text style={styles.contactBtnText}>Call</Text>
+                  </TouchableOpacity>
+                )}
+                {room.whatsapp && (
+                  <TouchableOpacity
+                    style={[styles.contactBtn, styles.whatsappBtn]}
+                    onPress={() => openContact('whatsapp', room.whatsapp)}
+                  >
+                    <MaterialCommunityIcons name="whatsapp" size={20} color="#25D366" />
+                    <Text style={[styles.contactBtnText, { color: '#25D366' }]}>WhatsApp</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+              <View style={styles.divider} />
             </>
           )}
 
-          <Divider style={styles.divider} />
-
-          {/* Contact options */}
-          <Text variant="titleSmall" style={styles.sectionTitle}>Contact Owner</Text>
-          <View style={styles.contactRow}>
-            {room.phone && (
-              <Button
-                mode="outlined"
-                icon="phone"
-                onPress={() => openContact('phone', room.phone)}
-                style={styles.contactBtn}
-                compact
-              >
-                Call
-              </Button>
-            )}
-            {room.whatsapp && (
-              <Button
-                mode="outlined"
-                icon="whatsapp"
-                onPress={() => openContact('whatsapp', room.whatsapp)}
-                style={[styles.contactBtn, styles.waBtn]}
-                textColor="#25D366"
-                compact
-              >
-                WhatsApp
-              </Button>
-            )}
-          </View>
-
-          {/* Book button */}
-          <Button
-            mode="contained"
-            onPress={handleBook}
-            loading={booking}
-            disabled={booking}
-            style={styles.bookBtn}
-            contentStyle={{ paddingVertical: 6 }}
-            labelStyle={{ fontSize: 16, fontWeight: '700' }}
-            icon="calendar-check"
-          >
-            Book Now
-          </Button>
+          {/* Bottom padding for sticky bar */}
+          <View style={{ height: 100 }} />
         </View>
       </ScrollView>
 
-      <Snackbar
-        visible={!!snack}
-        onDismiss={() => setSnack('')}
-        duration={3000}
-        style={styles.snack}
-      >
-        {snack}
-      </Snackbar>
-    </>
+      {/* Sticky bottom CTA */}
+      <View style={styles.stickyBar}>
+        <View style={styles.stickyPrice}>
+          <Text style={styles.stickyPriceNum}>₹{room.rent.toLocaleString()}</Text>
+          <Text style={styles.stickyPriceSub}>/month</Text>
+        </View>
+        <TouchableOpacity
+          style={[styles.bookBtn, booking && styles.bookBtnDisabled]}
+          onPress={handleBook}
+          disabled={booking}
+          activeOpacity={0.85}
+        >
+          <Text style={styles.bookBtnText}>{booking ? 'Booking…' : 'Book Now'}</Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Snackbar */}
+      {snackMsg ? (
+        <View style={styles.snackbar}>
+          <Text style={styles.snackText}>{snackMsg}</Text>
+        </View>
+      ) : null}
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f8fafc' },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  imageContainer: { position: 'relative' },
-  image: { width: '100%', height: 280 },
-  dots: {
-    position: 'absolute',
-    bottom: 12,
-    width: '100%',
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 6,
-  },
-  dot: {
-    width: 7,
-    height: 7,
-    borderRadius: 4,
-    backgroundColor: 'rgba(255,255,255,0.5)',
-  },
-  dotActive: { backgroundColor: '#fff', width: 18 },
-  favBtn: {
-    position: 'absolute',
-    top: 14,
-    right: 16,
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    backgroundColor: 'rgba(0,0,0,0.35)',
+  container: { flex: 1, backgroundColor: '#FFFFFF' },
+  center: {
+    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    gap: 12,
   },
-  body: { padding: 20 },
-  priceRow: {
+  errorEmoji: { fontSize: 44 },
+  errorText: { color: '#FF385C', fontSize: 14 },
+  backBtn: {
+    backgroundColor: '#F7F7F7',
+    borderRadius: 12,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+  },
+  backBtnText: { color: '#222222', fontWeight: '600' },
+  gallery: {
+    width: SCREEN_W,
+    height: IMG_H,
+    position: 'relative',
+    backgroundColor: '#F0F0F0',
+  },
+  galleryImage: { width: SCREEN_W, height: IMG_H },
+  galleryOverlay: {
+    position: 'absolute',
+    top: 50,
+    left: 0,
+    right: 0,
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 8,
+    paddingHorizontal: 16,
   },
-  price: { color: '#1e40af', fontWeight: '800' },
-  perMonth: { color: '#64748b', fontWeight: '400' },
-  deposit: { color: '#64748b', marginTop: 2 },
-  typeChip: { backgroundColor: '#eff6ff', alignSelf: 'flex-start' },
-  tags: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 4 },
-  tag: { backgroundColor: '#f1f5f9' },
-  divider: { marginVertical: 16 },
-  row: { flexDirection: 'row', alignItems: 'flex-start', gap: 8, marginBottom: 16 },
-  rowText: { flex: 1, color: '#475569', lineHeight: 22 },
-  sectionTitle: { fontWeight: '700', color: '#1e293b', marginBottom: 10 },
-  description: { color: '#475569', lineHeight: 22, marginBottom: 4 },
-  amenities: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  amenityChip: { backgroundColor: '#f0fdf4' },
-  amenityText: { color: '#166534', fontSize: 12 },
-  contactRow: { flexDirection: 'row', gap: 12, marginBottom: 20 },
-  contactBtn: { flex: 1, borderRadius: 10 },
-  waBtn: { borderColor: '#25D366' },
-  bookBtn: { borderRadius: 14, marginBottom: 8 },
-  snack: { backgroundColor: '#1e293b' },
+  galleryBack: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.9)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+  },
+  galleryFav: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.9)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+  },
+  dots: {
+    position: 'absolute',
+    bottom: 14,
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 5,
+  },
+  dot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: 'rgba(255,255,255,0.5)',
+  },
+  dotActive: {
+    backgroundColor: '#FFFFFF',
+    width: 18,
+  },
+  photoCount: {
+    position: 'absolute',
+    bottom: 14,
+    right: 14,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    borderRadius: 12,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  photoCountText: { fontSize: 11, color: '#FFFFFF', fontWeight: '600' },
+  content: { padding: 20 },
+  titleRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 10,
+  },
+  typeTag: {
+    backgroundColor: '#222222',
+    borderRadius: 20,
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+  },
+  typeTagText: { color: '#FFFFFF', fontSize: 12, fontWeight: '700' },
+  furnishedTag: {
+    backgroundColor: '#F7F7F7',
+    borderRadius: 20,
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderWidth: 1,
+    borderColor: '#EBEBEB',
+  },
+  furnishedTagText: { color: '#555555', fontSize: 12, fontWeight: '600' },
+  priceRow: { marginBottom: 10 },
+  price: { fontSize: 28, fontWeight: '800', color: '#222222', letterSpacing: -0.5 },
+  pricePer: { fontSize: 16, fontWeight: '400', color: '#717171' },
+  deposit: { fontSize: 13, color: '#717171', marginTop: 3 },
+  locationRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 5,
+    marginBottom: 20,
+  },
+  locationText: { flex: 1, fontSize: 14, color: '#717171', lineHeight: 20 },
+  infoGrid: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 20,
+  },
+  infoItem: {
+    flex: 1,
+    backgroundColor: '#F7F7F7',
+    borderRadius: 14,
+    padding: 14,
+    alignItems: 'center',
+    gap: 4,
+  },
+  infoLabel: { fontSize: 11, color: '#AAAAAA', fontWeight: '600' },
+  infoValue: { fontSize: 13, fontWeight: '700', color: '#222222' },
+  divider: { height: 1, backgroundColor: '#F0F0F0', marginVertical: 20 },
+  sectionTitle: { fontSize: 18, fontWeight: '800', color: '#222222', marginBottom: 12 },
+  description: { fontSize: 14, color: '#555555', lineHeight: 22 },
+  amenitiesGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+  },
+  amenityItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    width: '46%',
+  },
+  amenityText: { fontSize: 13, color: '#444444', fontWeight: '500' },
+  contactRow: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  contactBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    borderWidth: 1.5,
+    borderColor: '#DDDDDD',
+    borderRadius: 14,
+    paddingVertical: 14,
+  },
+  whatsappBtn: {
+    borderColor: '#25D366',
+    backgroundColor: '#F0FFF4',
+  },
+  contactBtnText: { fontSize: 14, fontWeight: '700', color: '#222222' },
+  stickyBar: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: '#FFFFFF',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    paddingBottom: 28,
+    borderTopWidth: 1,
+    borderTopColor: '#F0F0F0',
+    elevation: 12,
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: -4 },
+  },
+  stickyPrice: { flexDirection: 'row', alignItems: 'baseline', gap: 3 },
+  stickyPriceNum: { fontSize: 22, fontWeight: '800', color: '#222222' },
+  stickyPriceSub: { fontSize: 13, color: '#717171' },
+  bookBtn: {
+    backgroundColor: '#FF385C',
+    borderRadius: 14,
+    paddingHorizontal: 32,
+    paddingVertical: 15,
+    elevation: 3,
+    shadowColor: '#FF385C',
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
+  },
+  bookBtnDisabled: { opacity: 0.65 },
+  bookBtnText: { color: '#FFFFFF', fontWeight: '800', fontSize: 16 },
+  snackbar: {
+    position: 'absolute',
+    bottom: 100,
+    left: 20,
+    right: 20,
+    backgroundColor: '#222222',
+    borderRadius: 14,
+    padding: 14,
+    alignItems: 'center',
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOpacity: 0.2,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 4 },
+  },
+  snackText: { color: '#FFFFFF', fontSize: 14, fontWeight: '500' },
 });
