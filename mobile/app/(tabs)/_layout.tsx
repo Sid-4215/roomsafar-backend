@@ -34,7 +34,7 @@ export default function TabsLayout() {
         name="index"
         options={{
           title: 'Home',
-          headerTitle: 'RoomSafar 🏠',
+          headerShown: false,
           tabBarIcon: ({ color, size }) => <TabIcon name="home-outline" color={color} size={size} />,
         }}
       />
