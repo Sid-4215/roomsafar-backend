@@ -20,10 +20,10 @@ if [ ! -d "node_modules" ] || [ ! -d "node_modules/react-native-worklets" ]; the
   npm install --legacy-peer-deps
 fi
 
-echo "🚀 Starting Expo Metro on port 5001..."
-# Run without --tunnel; Replit's dev domain acts as the public proxy.
-# Users can scan the QR from the Expo CLI output or open the web preview.
-EXPO_NO_TELEMETRY=1 BROWSER=none npx expo start --port 5001 --web &
+echo "🚀 Starting Expo Metro on port 5001 with tunnel (for Expo Go)..."
+# --tunnel creates an ngrok public URL so Expo Go on any device can scan the QR.
+# @expo/ngrok is listed in package.json so this works without extra installs.
+EXPO_NO_TELEMETRY=1 BROWSER=none npx expo start --port 5001 --web --tunnel &
 EXPO_PID=$!
 
 # Give Metro time to start before proxy comes up
