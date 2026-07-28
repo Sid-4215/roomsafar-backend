@@ -5,6 +5,11 @@ spring:
   application:
     name: api-gateway
 
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration
+      - org.springframework.boot.autoconfigure.data.redis.RedisReactiveAutoConfiguration
+
   cloud:
     gateway:
       discovery:
@@ -21,6 +26,8 @@ spring:
               - "http://127.0.0.1:3000"
               - "https://www.roomsafar.com"
               - "http://roomsafar.com"
+              - "https://*.replit.dev"
+              - "https://*.repl.co"
             allowed-methods:
               - GET
               - POST
@@ -49,6 +56,36 @@ spring:
             - Path=/api/rooms/**
           filters:
             - RewritePath=/api/rooms/(?<segment>.*), /api/rooms/${segment}
+
+        # BOOKING SERVICE
+        - id: booking-service
+          uri: lb://booking-service
+          predicates:
+            - Path=/api/bookings/**
+
+        # FAVORITES SERVICE
+        - id: favorites-service
+          uri: lb://favorites-service
+          predicates:
+            - Path=/api/favorites/**
+
+        # PAYMENT SERVICE
+        - id: payment-service
+          uri: lb://payment-service
+          predicates:
+            - Path=/api/payments/**
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+    enabled: true
+    fetch-registry: true
+    register-with-eureka: true
+  instance:
+    prefer-ip-address: false
+    hostname: localhost
+    instance-id: ${spring.application.name}:${server.port}
 
 jwt:
   secret: "this_is_a_very_secret_key_change_in_prod_1234567890_secure_key"

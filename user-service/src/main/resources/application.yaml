@@ -6,9 +6,9 @@ spring:
     name: user-service
 
   datasource:
-    url: jdbc:postgresql://localhost:5432/roomsafar_users
-    username: postgres
-    password: root
+    url: jdbc:postgresql://${PGHOST}:${PGPORT}/${PGDATABASE}?currentSchema=users
+    username: ${PGUSER}
+    password: ${PGPASSWORD}
     hikari:
       connection-timeout: 30000
       maximum-pool-size: 10

@@ -9,9 +9,9 @@ spring:
     name: room-service
 
   datasource:
-    url: jdbc:postgresql://localhost:5432/roomsafar_v2
-    username: postgres
-    password: root
+    url: jdbc:postgresql://${PGHOST}:${PGPORT}/${PGDATABASE}?currentSchema=rooms
+    username: ${PGUSER}
+    password: ${PGPASSWORD}
     driver-class-name: org.postgresql.Driver
 
   jpa:
