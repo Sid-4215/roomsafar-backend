@@ -20,14 +20,8 @@ spring:
       globalcors:
         cors-configurations:
           '[/**]':
-            allowed-origin-patterns:
-              - "http://localhost:*"
-              - "http://127.0.0.1:*"
-              - "https://www.roomsafar.com"
-              - "http://roomsafar.com"
-              - "https://*.replit.dev"
-              - "https://*.repl.co"
-              - "https://*.pike.replit.dev"
+            allowed-origins:
+              - "*"
             allowed-methods:
               - GET
               - POST
@@ -37,7 +31,7 @@ spring:
               - PATCH
             allowed-headers: "*"
             exposed-headers: "*"
-            allow-credentials: true
+            allow-credentials: false
             max-age: 3600
 
       routes:

@@ -3,16 +3,10 @@ set -e
 
 cd "$(dirname "$0")"
 
-# Build the backend API URL from Replit's dev domain
-# Port 8080 is accessible at 8080-<REPLIT_DEV_DOMAIN> in Replit
-if [ -n "$REPLIT_DEV_DOMAIN" ]; then
-  BACKEND_URL="https://8080-${REPLIT_DEV_DOMAIN}"
-else
-  BACKEND_URL="http://localhost:8080"
-fi
-
-echo "EXPO_PUBLIC_API_URL=${BACKEND_URL}" > .env
-echo "✅ API URL set to: ${BACKEND_URL}"
+# With the proxy approach, the app and API are served from the same origin (port 5000).
+# No cross-origin requests → no CORS issues in the Replit preview.
+echo "EXPO_PUBLIC_API_URL=" > .env
+echo "✅ API calls will be proxied through port 5000 → localhost:8080"
 
 # Install dependencies if node_modules is missing
 if [ ! -d "node_modules" ]; then
@@ -20,5 +14,23 @@ if [ ! -d "node_modules" ]; then
   npm install --legacy-peer-deps
 fi
 
-echo "🚀 Starting RoomSafar mobile app (web preview)..."
-npx expo start --web --port 5000
+echo "🚀 Starting Expo Metro on port 5001 (internal)..."
+npx expo start --web --port 5001 &
+EXPO_PID=$!
+
+# Give Metro a moment to start before accepting proxy traffic
+sleep 5
+
+echo "🔀 Starting reverse proxy on port 5000 (public)..."
+PROXY_PORT=5000 EXPO_PORT=5001 BACKEND_PORT=8080 node proxy-server.js &
+PROXY_PID=$!
+
+echo "✅ App available at port 5000  (proxy → Expo:5001 + Backend:8080)"
+
+cleanup() {
+  kill $EXPO_PID $PROXY_PID 2>/dev/null
+  exit 0
+}
+trap cleanup SIGTERM SIGINT
+
+wait

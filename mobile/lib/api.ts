@@ -5,7 +5,9 @@ import type {
   SearchParams, Booking, Favorite,
 } from './types';
 
-const BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:8080';
+// Empty string → relative URLs (same-origin via the proxy on port 5000).
+// Fallback to localhost for native builds.
+const BASE_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:8080';
 
 class ApiClient {
   private client: AxiosInstance;
