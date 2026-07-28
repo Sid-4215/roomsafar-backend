@@ -8,16 +8,22 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { api } from '@/lib/api';
 import type { RoomRequest, Room } from '@/lib/types';
 
-const TYPES = ['1BHK', '2BHK', 'STUDIO', 'PG', 'FLAT'];
+const TYPES = [
+  { label: '1 BHK', value: 'BHK1' },
+  { label: '2 BHK', value: 'BHK2' },
+  { label: 'Studio/RK', value: 'RK' },
+  { label: 'Shared', value: 'SHARED' },
+  { label: 'PG', value: 'PG' },
+];
 const FURNISHED_OPTS = [
   { label: 'Furnished', value: 'FURNISHED' },
   { label: 'Semi', value: 'SEMI_FURNISHED' },
   { label: 'Unfurnished', value: 'UNFURNISHED' },
 ];
 const GENDER_OPTS = [
-  { label: 'Boys', value: 'MALE' },
-  { label: 'Girls', value: 'FEMALE' },
-  { label: 'Any', value: 'ANY' },
+  { label: 'Boys', value: 'BOYS' },
+  { label: 'Girls', value: 'GIRLS' },
+  { label: 'Anyone', value: 'ANYONE' },
 ];
 const AMENITIES_LIST = ['WiFi', 'AC', 'Parking', 'Gym', 'Laundry', 'Kitchen', 'Security', 'Power Backup', 'Water'];
 
@@ -76,9 +82,9 @@ export default function EditRoomScreen() {
         const room = await api.getRoomById(Number(id));
         setRent(String(room.rent));
         setDeposit(String(room.deposit ?? ''));
-        setType(room.type ?? '1BHK');
+        setType(room.type ?? 'BHK1');
         setFurnished(room.furnished ?? 'FURNISHED');
-        setGender(room.gender ?? 'ANY');
+        setGender(room.gender ?? 'ANYONE');
         setWhatsapp(room.whatsapp ?? '');
         setPhone(room.phone ?? '');
         setDescription(room.description ?? '');
@@ -101,6 +107,10 @@ export default function EditRoomScreen() {
 
   const handleSave = async () => {
     if (!rent) { setError('Rent is required'); return; }
+    if (!whatsapp || whatsapp.replace(/\D/g, '').length !== 10) {
+      setError('WhatsApp must be exactly 10 digits'); return;
+    }
+    if (!imageUrl) { setError('At least one image URL is required'); return; }
     setError('');
     setSaving(true);
     try {
@@ -110,12 +120,14 @@ export default function EditRoomScreen() {
         type,
         furnished,
         gender,
-        whatsapp: whatsapp || undefined,
-        phone: phone || undefined,
+        whatsapp: whatsapp.replace(/\D/g, ''),
+        phone: phone ? phone.replace(/\D/g, '') : undefined,
         description: description || undefined,
+        contactPreference: 'WHATSAPP',
+        brokerageRequired: false,
         amenities,
         address: { area, city, state, pincode },
-        images: imageUrl ? [{ url: imageUrl }] : [],
+        images: [{ url: imageUrl, label: 'EXTERIOR', sequence: 0 }],
       };
       await api.updateRoom(Number(id), req);
       Alert.alert('Saved', 'Room updated successfully!', [
@@ -147,7 +159,7 @@ export default function EditRoomScreen() {
         </View>
 
         <Text variant="labelSmall" style={styles.label}>Room Type</Text>
-        <ChipGroup options={TYPES.map((t) => ({ label: t, value: t }))} value={type} onSelect={setType} />
+        <ChipGroup options={TYPES} value={type} onSelect={setType} />
 
         <Text variant="labelSmall" style={styles.label}>Furnishing</Text>
         <ChipGroup options={FURNISHED_OPTS} value={furnished} onSelect={setFurnished} />

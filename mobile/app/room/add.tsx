@@ -8,16 +8,22 @@ import { useRouter } from 'expo-router';
 import { api } from '@/lib/api';
 import type { RoomRequest } from '@/lib/types';
 
-const TYPES = ['1BHK', '2BHK', 'STUDIO', 'PG', 'FLAT'];
+const TYPES = [
+  { label: '1 BHK', value: 'BHK1' },
+  { label: '2 BHK', value: 'BHK2' },
+  { label: 'Studio/RK', value: 'RK' },
+  { label: 'Shared', value: 'SHARED' },
+  { label: 'PG', value: 'PG' },
+];
 const FURNISHED_OPTS = [
   { label: 'Furnished', value: 'FURNISHED' },
   { label: 'Semi', value: 'SEMI_FURNISHED' },
   { label: 'Unfurnished', value: 'UNFURNISHED' },
 ];
 const GENDER_OPTS = [
-  { label: 'Boys', value: 'MALE' },
-  { label: 'Girls', value: 'FEMALE' },
-  { label: 'Any', value: 'ANY' },
+  { label: 'Boys', value: 'BOYS' },
+  { label: 'Girls', value: 'GIRLS' },
+  { label: 'Anyone', value: 'ANYONE' },
 ];
 const CONTACT_OPTS = [
   { label: 'WhatsApp', value: 'WHATSAPP' },
@@ -65,9 +71,9 @@ export default function AddRoomScreen() {
   // Form state
   const [rent, setRent] = useState('');
   const [deposit, setDeposit] = useState('');
-  const [type, setType] = useState<string>('1BHK');
+  const [type, setType] = useState<string>('BHK1');
   const [furnished, setFurnished] = useState<string>('FURNISHED');
-  const [gender, setGender] = useState<string>('ANY');
+  const [gender, setGender] = useState<string>('ANYONE');
   const [contactPref, setContactPref] = useState<string>('WHATSAPP');
   const [whatsapp, setWhatsapp] = useState('');
   const [phone, setPhone] = useState('');
@@ -86,6 +92,10 @@ export default function AddRoomScreen() {
   const handleSubmit = async () => {
     if (!rent) { setError('Rent is required'); return; }
     if (!area && !city) { setError('Area or city is required'); return; }
+    if (!whatsapp || whatsapp.replace(/\D/g, '').length !== 10) {
+      setError('WhatsApp must be exactly 10 digits'); return;
+    }
+    if (!imageUrl) { setError('At least one image URL is required'); return; }
     setError('');
     setLoading(true);
     try {
@@ -96,12 +106,13 @@ export default function AddRoomScreen() {
         furnished,
         gender,
         contactPreference: contactPref,
-        whatsapp: whatsapp || undefined,
-        phone: phone || undefined,
+        whatsapp: whatsapp.replace(/\D/g, ''),
+        phone: phone ? phone.replace(/\D/g, '') : undefined,
         description: description || undefined,
+        brokerageRequired: false,
         amenities,
         address: { line1, area, city, state, pincode },
-        images: imageUrl ? [{ url: imageUrl }] : [],
+        images: [{ url: imageUrl, label: 'EXTERIOR', sequence: 0 }],
       };
       await api.createRoom(req);
       Alert.alert('Success', 'Room listed successfully!', [
@@ -142,11 +153,7 @@ export default function AddRoomScreen() {
 
         {/* Room Type */}
         <SectionTitle title="🏠 Room Type" />
-        <ChipGroup
-          options={TYPES.map((t) => ({ label: t, value: t }))}
-          value={type}
-          onSelect={setType}
-        />
+        <ChipGroup options={TYPES} value={type} onSelect={setType} />
 
         {/* Furnished */}
         <SectionTitle title="🛋️ Furnishing" />

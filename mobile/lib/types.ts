@@ -31,9 +31,9 @@ export interface Room {
   id: number;
   rent: number;
   deposit: number;
-  type: string;           // e.g. "1BHK", "PG", "FLAT"
-  furnished: string;      // "FURNISHED", "SEMI_FURNISHED", "UNFURNISHED"
-  gender: string;         // "MALE", "FEMALE", "ANY"
+  type: string;           // BHK1, BHK2, RK, SHARED, PG
+  furnished: string;      // FURNISHED, SEMI_FURNISHED, UNFURNISHED
+  gender: string;         // BOYS, GIRLS, ANYONE
   whatsapp?: string;
   phone?: string;
   instagram?: string;
@@ -51,21 +51,22 @@ export interface Room {
 }
 
 export interface RoomRequest {
-  title?: string;
   description?: string;
   rent: number;
   deposit: number;
-  type: string;
-  furnished: string;
-  gender: string;
-  whatsapp?: string;
+  type: string;           // BHK1, BHK2, RK, SHARED, PG
+  furnished: string;      // FURNISHED, SEMI_FURNISHED, UNFURNISHED
+  gender: string;         // BOYS, GIRLS, ANYONE
+  whatsapp: string;       // required, exactly 10 digits
   phone?: string;
-  contactPreference?: string;
-  brokerageRequired?: boolean;
+  instagram?: string;
+  telegram?: string;
+  contactPreference: string;
+  brokerageRequired: boolean;
   brokerageAmount?: number;
   amenities?: string[];
-  address?: Partial<Address>;
-  images?: { url: string }[];
+  address: Partial<Address>;
+  images: { url: string; label?: string; caption?: string; sequence?: number }[];
 }
 
 export interface PaginatedResponse<T> {
@@ -123,29 +124,44 @@ export interface PaymentOrder {
   status: string;
 }
 
-// RoomieSync
-export interface RooميeListing {
+// RoomieSync — enum: LOOKING_FOR_ROOMMATE | LOOKING_FOR_ROOM
+export interface RoomieListing {
   id: number;
+  listingType?: string;   // LOOKING_FOR_ROOMMATE | LOOKING_FOR_ROOM
   title?: string;
   description?: string;
-  listingType?: string;  // "LOOKING_FOR_ROOM" | "HAVE_ROOM"
-  rent?: number;
   area?: string;
   city?: string;
-  gender?: string;
+  pincode?: string;
+  totalRent?: number;
+  rentShare?: number;
+  deposit?: number;
+  roomType?: string;
+  furnished?: boolean;
+  genderPreference?: string;
+  occupationPreference?: string;
+  contactName?: string;
+  contactPhone?: string;
+  amenities?: string[];
   ownerId?: number;
   createdAt?: string;
 }
 
-export interface RoomieListing {
-  id: number;
-  title?: string;
+export interface RoomieListingRequest {
+  listingType: string;    // LOOKING_FOR_ROOMMATE | LOOKING_FOR_ROOM
+  title: string;
   description?: string;
-  listingType?: string;
-  rent?: number;
-  area?: string;
-  city?: string;
-  gender?: string;
-  ownerId?: number;
-  createdAt?: string;
+  area: string;
+  city: string;
+  pincode?: string;
+  totalRent?: number;
+  rentShare: number;
+  deposit?: number;
+  roomType: string;
+  furnished: boolean;
+  genderPreference: string;
+  occupationPreference: string;
+  contactName: string;
+  contactPhone: string;
+  amenities?: string[];
 }
