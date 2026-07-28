@@ -14,18 +14,20 @@ fi
 echo "EXPO_PUBLIC_API_URL=$API_URL" > .env
 echo "✅ API URL set to: $API_URL"
 
-# Install dependencies if node_modules is missing
-if [ ! -d "node_modules" ]; then
+# Install dependencies if node_modules is missing or react-native-worklets is missing
+if [ ! -d "node_modules" ] || [ ! -d "node_modules/react-native-worklets" ]; then
   echo "📦 Installing dependencies..."
   npm install --legacy-peer-deps
 fi
 
-echo "🚀 Starting Expo Metro on port 5001 with tunnel (supports Android & iOS via Expo Go)..."
-npx expo start --port 5001 --tunnel &
+echo "🚀 Starting Expo Metro on port 5001..."
+# Run without --tunnel; Replit's dev domain acts as the public proxy.
+# Users can scan the QR from the Expo CLI output or open the web preview.
+EXPO_NO_TELEMETRY=1 BROWSER=none npx expo start --port 5001 --web &
 EXPO_PID=$!
 
-# Give Metro time to start and establish tunnel before proxy comes up
-sleep 8
+# Give Metro time to start before proxy comes up
+sleep 6
 
 echo "🔀 Starting reverse proxy on port 5000 (public web entry point)..."
 PROXY_PORT=5000 EXPO_PORT=5001 BACKEND_PORT=8080 node proxy-server.js &

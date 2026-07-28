@@ -66,10 +66,22 @@ export default function RoomDetailScreen() {
   const handleBook = async () => {
     if (!token) { setSnack('Sign in to book this room'); return; }
     if (!room) return;
+
+    // Pick move-in date (today + 1 day default, move-out + 30 days)
+    const today = new Date();
+    const startDate = new Date(today); startDate.setDate(today.getDate() + 1);
+    const endDate = new Date(startDate); endDate.setDate(startDate.getDate() + 30);
+    const fmt = (d: Date) => d.toISOString().split('T')[0];
+
     setBooking(true);
     try {
-      const result = await api.createBooking(room.id, room.rent);
-      setSnack(`Booking created! ID: ${result.bookingId} — Status: ${result.status}`);
+      const result = await api.createBooking({
+        roomId: room.id,
+        amount: room.rent,
+        startDate: fmt(startDate),
+        endDate: fmt(endDate),
+      });
+      setSnack(`✅ Booking #${result.bookingId} created! Check-in: ${fmt(startDate)}`);
     } catch (e: any) {
       setSnack(e.message || 'Booking failed');
     } finally {

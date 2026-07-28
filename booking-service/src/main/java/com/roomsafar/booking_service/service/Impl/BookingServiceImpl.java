@@ -1,5 +1,8 @@
 package com.roomsafar.booking_service.service.Impl;
 
+import java.util.List;
+import java.util.stream.Collectors;
+
 import org.springframework.stereotype.Service;
 
 import com.roomsafar.booking_service.client.PaymentClient;
@@ -14,9 +17,11 @@ import com.roomsafar.booking_service.service.BookingService;
 
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class BookingServiceImpl implements BookingService {
 
     private final BookingRepository bookingRepository;
@@ -24,37 +29,57 @@ public class BookingServiceImpl implements BookingService {
 
     @Override
     @Transactional
-    public BookingResponse createBooking(Long userId, BookingRequest request) {
+    public BookingResponse createBooking(Long userId, String userEmail, BookingRequest request) {
 
-        // Save initial booking
         Booking booking = new Booking();
         booking.setRoomId(request.getRoomId());
         booking.setUserId(userId);
         booking.setAmount(request.getAmount());
         booking.setStatus(BookingStatus.PAYMENT_PENDING);
+        booking.setStartDate(request.getStartDate());
+        booking.setEndDate(request.getEndDate());
+        booking.setUserEmail(userEmail);
 
         Booking savedBooking = bookingRepository.save(booking);
 
-        // Send payment request via Feign
-        PaymentRequest paymentRequest = new PaymentRequest(
-                savedBooking.getAmount(),
-                "INR",
-                "booking_" + savedBooking.getId()
-        );
+        // Attempt payment order creation; fall back gracefully if payment service unavailable
+        try {
+            PaymentRequest paymentRequest = new PaymentRequest(
+                    savedBooking.getAmount(),
+                    "INR",
+                    "booking_" + savedBooking.getId()
+            );
+            PaymentOrderResponse paymentResponse = paymentClient.createOrder(paymentRequest);
+            savedBooking.setPaymentOrderId(paymentResponse.getOrderId());
+            bookingRepository.save(savedBooking);
+        } catch (Exception e) {
+            log.warn("Payment service unavailable, booking saved without payment order: {}", e.getMessage());
+        }
 
-        PaymentOrderResponse paymentResponse = paymentClient.createOrder(paymentRequest);
+        return toResponse(savedBooking);
+    }
 
-        savedBooking.setPaymentOrderId(paymentResponse.getOrderId());
-        savedBooking.setStatus(BookingStatus.PAYMENT_PENDING);
+    @Override
+    public List<BookingResponse> getMyBookings(String userEmail) {
+        // Find bookings by userEmail (stored on create)
+        return bookingRepository.findAll().stream()
+                .filter(b -> userEmail.equals(b.getUserEmail()))
+                .sorted((a, b) -> b.getCreatedAt().compareTo(a.getCreatedAt()))
+                .map(this::toResponse)
+                .collect(Collectors.toList());
+    }
 
-        bookingRepository.save(savedBooking);
-
-        // Build response
-        BookingResponse response = new BookingResponse();
-        response.setBookingId(savedBooking.getId());
-        response.setStatus(savedBooking.getStatus());
-        response.setPaymentOrderId(savedBooking.getPaymentOrderId());
-
-        return response;
+    private BookingResponse toResponse(Booking b) {
+        BookingResponse r = new BookingResponse();
+        r.setBookingId(b.getId());
+        r.setRoomId(b.getRoomId());
+        r.setAmount(b.getAmount());
+        r.setStatus(b.getStatus());
+        r.setPaymentOrderId(b.getPaymentOrderId());
+        r.setStartDate(b.getStartDate());
+        r.setEndDate(b.getEndDate());
+        r.setUserEmail(b.getUserEmail());
+        r.setCreatedAt(b.getCreatedAt());
+        return r;
     }
 }

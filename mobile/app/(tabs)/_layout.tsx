@@ -24,7 +24,7 @@ export default function TabsLayout() {
           height: 60,
           paddingBottom: 8,
         },
-        tabBarLabelStyle: { fontSize: 11, fontWeight: '600' },
+        tabBarLabelStyle: { fontSize: 10, fontWeight: '600' },
         headerStyle: { backgroundColor: '#fff' },
         headerTitleStyle: { color: '#1e293b', fontWeight: '700' },
         headerShadowVisible: false,
@@ -35,45 +35,49 @@ export default function TabsLayout() {
         options={{
           title: 'Home',
           headerTitle: 'RoomSafar 🏠',
-          tabBarIcon: ({ color, size }) => (
-            <TabIcon name="home-outline" color={color} size={size} />
-          ),
+          tabBarIcon: ({ color, size }) => <TabIcon name="home-outline" color={color} size={size} />,
         }}
       />
       <Tabs.Screen
         name="search"
         options={{
           title: 'Search',
-          tabBarIcon: ({ color, size }) => (
-            <TabIcon name="magnify" color={color} size={size} />
-          ),
+          tabBarIcon: ({ color, size }) => <TabIcon name="magnify" color={color} size={size} />,
+        }}
+      />
+      <Tabs.Screen
+        name="roomiesync"
+        options={{
+          title: 'RoomieSync',
+          tabBarIcon: ({ color, size }) => <TabIcon name="account-group-outline" color={color} size={size} />,
         }}
       />
       <Tabs.Screen
         name="bookings"
         options={{
           title: 'Bookings',
-          tabBarIcon: ({ color, size }) => (
-            <TabIcon name="calendar-check-outline" color={color} size={size} />
-          ),
+          tabBarIcon: ({ color, size }) => <TabIcon name="calendar-check-outline" color={color} size={size} />,
         }}
       />
       <Tabs.Screen
         name="favorites"
         options={{
           title: 'Saved',
-          tabBarIcon: ({ color, size }) => (
-            <TabIcon name="heart-outline" color={color} size={size} />
-          ),
+          tabBarIcon: ({ color, size }) => <TabIcon name="heart-outline" color={color} size={size} />,
+        }}
+      />
+      <Tabs.Screen
+        name="my-rooms"
+        options={{
+          title: 'My Rooms',
+          tabBarIcon: ({ color, size }) => <TabIcon name="home-edit-outline" color={color} size={size} />,
         }}
       />
       <Tabs.Screen
         name="profile"
         options={{
           title: 'Profile',
-          tabBarIcon: ({ color, size }) => (
-            <TabIcon name="account-outline" color={color} size={size} />
-          ),
+          tabBarIcon: ({ color, size }) => <TabIcon name="account-outline" color={color} size={size} />,
         }}
       />
     </Tabs>

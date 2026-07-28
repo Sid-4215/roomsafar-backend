@@ -1,8 +1,9 @@
 import axios, { AxiosInstance, AxiosError } from 'axios';
 import { storage } from './storage';
 import type {
-  AuthResponse, Room, PaginatedResponse,
-  SearchParams, Booking, Favorite,
+  AuthResponse, Room, RoomRequest, PaginatedResponse,
+  SearchParams, Booking, BookingRequest, Favorite, PaymentOrder,
+  RoomieListing,
 } from './types';
 
 // Empty string → relative URLs (same-origin via the proxy on port 5000).
@@ -67,7 +68,9 @@ class ApiClient {
   }
 
   async getRooms(page = 0, size = 10): Promise<PaginatedResponse<Room>> {
-    const res = await this.client.get('/api/rooms', { params: { page, size, sortBy: 'createdAt', sortDir: 'desc' } });
+    const res = await this.client.get('/api/rooms', {
+      params: { page, size, sortBy: 'createdAt', sortDir: 'desc' },
+    });
     return res.data;
   }
 
@@ -86,9 +89,35 @@ class ApiClient {
     return res.data;
   }
 
+  async getMyRooms(page = 0, size = 20): Promise<PaginatedResponse<Room>> {
+    const res = await this.client.get('/api/rooms/my-rooms', {
+      params: { page, size },
+    });
+    return res.data;
+  }
+
+  async createRoom(data: RoomRequest): Promise<Room> {
+    const res = await this.client.post('/api/rooms', data);
+    return res.data;
+  }
+
+  async updateRoom(id: number, data: RoomRequest): Promise<Room> {
+    const res = await this.client.put(`/api/rooms/${id}`, data);
+    return res.data;
+  }
+
+  async deleteRoom(id: number): Promise<void> {
+    await this.client.delete(`/api/rooms/${id}`);
+  }
+
   // ── Bookings ──────────────────────────────────────────────────────────────
-  async createBooking(roomId: number, amount: number): Promise<Booking> {
-    const res = await this.client.post('/api/bookings', { roomId, amount });
+  async createBooking(req: BookingRequest): Promise<Booking> {
+    const res = await this.client.post('/api/bookings', req);
+    return res.data;
+  }
+
+  async getMyBookings(): Promise<Booking[]> {
+    const res = await this.client.get('/api/bookings/my');
     return res.data;
   }
 
@@ -110,6 +139,44 @@ class ApiClient {
   async checkFavorite(roomId: number): Promise<boolean> {
     const res = await this.client.get(`/api/favorites/check/${roomId}`);
     return res.data;
+  }
+
+  // ── Payments ──────────────────────────────────────────────────────────────
+  async createPaymentOrder(amount: number, currency = 'INR', receipt?: string): Promise<PaymentOrder> {
+    const res = await this.client.post('/api/payments/create-order', {
+      amount,
+      currency,
+      receipt: receipt ?? `pay_${Date.now()}`,
+    });
+    return res.data;
+  }
+
+  // ── RoomieSync ────────────────────────────────────────────────────────────
+  async getRoomieListings(params?: {
+    query?: string;
+    listingType?: string;
+    rent?: number;
+    area?: string;
+    city?: string;
+    page?: number;
+    size?: number;
+  }): Promise<PaginatedResponse<RoomieListing>> {
+    const res = await this.client.get('/api/roomiesync/listings', { params });
+    return res.data;
+  }
+
+  async getMyRoomieListings(page = 0, size = 20): Promise<PaginatedResponse<RoomieListing>> {
+    const res = await this.client.get('/api/roomiesync/listings/my', { params: { page, size } });
+    return res.data;
+  }
+
+  async createRoomieListing(data: Partial<RoomieListing>): Promise<RoomieListing> {
+    const res = await this.client.post('/api/roomiesync/listings', data);
+    return res.data;
+  }
+
+  async deleteRoomieListing(id: number): Promise<void> {
+    await this.client.delete(`/api/roomiesync/listings/${id}`);
   }
 }
 

@@ -6,4 +6,6 @@ import lombok.Data;
 public class BookingRequest {
     private Long roomId;
     private Integer amount;
+    private String startDate;
+    private String endDate;
 }

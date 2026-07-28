@@ -50,6 +50,24 @@ export interface Room {
   images: RoomImage[];
 }
 
+export interface RoomRequest {
+  title?: string;
+  description?: string;
+  rent: number;
+  deposit: number;
+  type: string;
+  furnished: string;
+  gender: string;
+  whatsapp?: string;
+  phone?: string;
+  contactPreference?: string;
+  brokerageRequired?: boolean;
+  brokerageAmount?: number;
+  amenities?: string[];
+  address?: Partial<Address>;
+  images?: { url: string }[];
+}
+
 export interface PaginatedResponse<T> {
   content: T[];
   totalElements: number;
@@ -74,13 +92,60 @@ export interface SearchParams {
 }
 
 export interface Booking {
-  bookingId: string;
+  bookingId: string | number;
+  roomId?: number;
+  amount?: number;
   status: string;
   paymentOrderId?: string;
+  startDate?: string;
+  endDate?: string;
+  userEmail?: string;
+  createdAt?: string;
+}
+
+export interface BookingRequest {
+  roomId: number;
+  amount: number;
+  startDate?: string;
+  endDate?: string;
 }
 
 export interface Favorite {
   id: number;
   roomId: number;
   userId: number;
+}
+
+export interface PaymentOrder {
+  orderId: string;
+  amount: number;
+  currency: string;
+  status: string;
+}
+
+// RoomieSync
+export interface RooميeListing {
+  id: number;
+  title?: string;
+  description?: string;
+  listingType?: string;  // "LOOKING_FOR_ROOM" | "HAVE_ROOM"
+  rent?: number;
+  area?: string;
+  city?: string;
+  gender?: string;
+  ownerId?: number;
+  createdAt?: string;
+}
+
+export interface RoomieListing {
+  id: number;
+  title?: string;
+  description?: string;
+  listingType?: string;
+  rent?: number;
+  area?: string;
+  city?: string;
+  gender?: string;
+  ownerId?: number;
+  createdAt?: string;
 }

@@ -1,6 +1,9 @@
 package com.roomsafar.booking_service.controller;
 
+import java.util.List;
+
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
@@ -26,10 +29,14 @@ public class BookingController {
             @RequestHeader("X-User-Role") String role,
             @RequestBody BookingRequest request) {
 
-        Long userId = 1L; // Later fetch from user-service
-
-        BookingResponse response = bookingService.createBooking(userId, request);
-
+        Long userId = 1L; // placeholder; real userId comes from user-service lookup
+        BookingResponse response = bookingService.createBooking(userId, email, request);
         return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/my")
+    public ResponseEntity<List<BookingResponse>> getMyBookings(
+            @RequestHeader("X-User-Email") String email) {
+        return ResponseEntity.ok(bookingService.getMyBookings(email));
     }
 }

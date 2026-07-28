@@ -47,6 +47,24 @@ function RootLayoutNav() {
             headerTintColor: '#1e40af',
           }}
         />
+        <Stack.Screen
+          name="room/add"
+          options={{
+            headerShown: true,
+            headerTitle: 'List a Room',
+            headerStyle: { backgroundColor: '#fff' },
+            headerTintColor: '#1e40af',
+          }}
+        />
+        <Stack.Screen
+          name="room/edit"
+          options={{
+            headerShown: true,
+            headerTitle: 'Edit Listing',
+            headerStyle: { backgroundColor: '#fff' },
+            headerTintColor: '#1e40af',
+          }}
+        />
       </Stack>
     </>
   );

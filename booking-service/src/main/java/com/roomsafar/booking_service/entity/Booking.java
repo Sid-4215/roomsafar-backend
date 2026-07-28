@@ -34,6 +34,10 @@ public class Booking {
 
     private String paymentOrderId;
 
+    private String startDate;
+    private String endDate;
+    private String userEmail;
+
     private LocalDateTime createdAt = LocalDateTime.now();
     private LocalDateTime updatedAt = LocalDateTime.now();
 }
