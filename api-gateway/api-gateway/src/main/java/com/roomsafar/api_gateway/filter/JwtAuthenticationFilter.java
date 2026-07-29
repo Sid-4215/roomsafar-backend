@@ -33,13 +33,17 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
             "/auth/me",
             "/auth/reset-password",
             "/auth/reset-password/confirm",
-            "/api/rooms/**",
             "/swagger-ui/**",
             "/v3/api-docs/**",
             "/webjars/**",
             "/eureka/**",
             "/actuator/**",
             "/fallback/**"
+    );
+
+    // GET paths under /api/rooms that require authentication (must not be treated as public)
+    private static final List<String> PROTECTED_ROOM_GET_PATHS = List.of(
+            "/api/rooms/my-rooms"
     );
 
     @Override
@@ -113,8 +117,13 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
             }
         }
 
-        // Allow all GET requests to rooms
+        // Allow GET requests to rooms except protected endpoints
         if (path.startsWith("/api/rooms") && "GET".equalsIgnoreCase(method)) {
+            for (String protectedPath : PROTECTED_ROOM_GET_PATHS) {
+                if (path.startsWith(protectedPath)) {
+                    return false; // requires auth
+                }
+            }
             return true;
         }
 
