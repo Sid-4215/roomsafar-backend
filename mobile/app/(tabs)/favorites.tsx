@@ -2,6 +2,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import {
   View, FlatList, StyleSheet, ActivityIndicator,
   RefreshControl, TouchableOpacity,
+  Platform, useWindowDimensions,
 } from 'react-native';
 import { Text } from 'react-native-paper';
 import { useRouter } from 'expo-router';
@@ -10,9 +11,19 @@ import { useAuth } from '@/lib/auth';
 import type { Room } from '@/lib/types';
 import RoomCard from '@/components/RoomCard';
 
+function useGridColumns() {
+  const { width } = useWindowDimensions();
+  if (Platform.OS !== 'web') return 2;
+  if (width >= 1200) return 4;
+  if (width >= 900) return 3;
+  if (width >= 600) return 2;
+  return 1;
+}
+
 export default function FavoritesScreen() {
   const { token } = useAuth();
   const router = useRouter();
+  const numColumns = useGridColumns();
   const [rooms, setRooms] = useState<Room[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -78,7 +89,9 @@ export default function FavoritesScreen() {
   return (
     <FlatList
       data={rooms}
+      key={numColumns}
       keyExtractor={(item) => String(item.id)}
+      numColumns={numColumns}
       renderItem={({ item }) => (
         <View style={styles.cardWrap}>
           <RoomCard room={item} onPress={() => router.push(`/room/${item.id}`)} />
@@ -120,9 +133,9 @@ const styles = StyleSheet.create({
   },
   headerTitle: { fontSize: 26, fontWeight: '800', color: '#222222', letterSpacing: -0.3 },
   headerSubtitle: { fontSize: 14, color: '#717171', marginTop: 3 },
-  list: { backgroundColor: '#F7F7F7', paddingBottom: 32 },
+  list: { backgroundColor: '#F7F7F7', paddingBottom: 32, paddingHorizontal: 8 },
   emptyContainer: { flex: 1, backgroundColor: '#F7F7F7' },
-  cardWrap: { paddingHorizontal: 16 },
+  cardWrap: { flex: 1, paddingHorizontal: 8 },
   center: {
     flex: 1,
     justifyContent: 'center',

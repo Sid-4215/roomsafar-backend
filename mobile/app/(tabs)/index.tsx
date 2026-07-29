@@ -14,9 +14,10 @@ import RoomCard from '@/components/RoomCard';
 
 function useGridColumns() {
   const { width } = useWindowDimensions();
-  if (Platform.OS !== 'web') return 1;
-  if (width >= 1200) return 3;
-  if (width >= 700) return 2;
+  if (Platform.OS !== 'web') return 2;
+  if (width >= 1200) return 4;
+  if (width >= 900) return 3;
+  if (width >= 600) return 2;
   return 1;
 }
 const PLACEHOLDER = 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=800&q=80';
@@ -251,7 +252,7 @@ export default function HomeScreen() {
       keyExtractor={(item) => String(item.id)}
       numColumns={numColumns}
       renderItem={({ item }) => (
-        <View style={[styles.cardWrap, numColumns > 1 && styles.cardWrapGrid]}>
+        <View style={styles.cardWrap}>
           <RoomCard room={item} onPress={() => router.push(`/room/${item.id}`)} />
         </View>
       )}
@@ -281,7 +282,7 @@ export default function HomeScreen() {
         </View>
       }
       showsVerticalScrollIndicator={false}
-      contentContainerStyle={[styles.list, numColumns > 1 && styles.listGrid]}
+      contentContainerStyle={[styles.list, styles.listGrid]}
     />
   );
 }
@@ -443,7 +444,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 6,
     paddingVertical: 1,
   },
-  cardWrap: { paddingHorizontal: 16 },
+  cardWrap: { flex: 1, paddingHorizontal: 8 },
   cardWrapGrid: { flex: 1, paddingHorizontal: 8 },
   listGrid: { paddingHorizontal: 8 },
   footerLoader: { paddingVertical: 20, alignItems: 'center' },

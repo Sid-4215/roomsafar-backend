@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import {
   View, StyleSheet, FlatList, ActivityIndicator,
   TextInput, TouchableOpacity, ScrollView,
+  Platform, useWindowDimensions,
 } from 'react-native';
 import { Text } from 'react-native-paper';
 import { useRouter, useLocalSearchParams } from 'expo-router';
@@ -45,9 +46,19 @@ function FilterPill({
   );
 }
 
+function useGridColumns() {
+  const { width } = useWindowDimensions();
+  if (Platform.OS !== 'web') return 2;
+  if (width >= 1200) return 4;
+  if (width >= 900) return 3;
+  if (width >= 600) return 2;
+  return 1;
+}
+
 export default function SearchScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{ q?: string; type?: string }>();
+  const numColumns = useGridColumns();
 
   const [query, setQuery] = useState(params.q ?? '');
   const [type, setType] = useState(params.type ?? '');
@@ -209,7 +220,9 @@ export default function SearchScreen() {
       ) : (
         <FlatList
           data={results}
+          key={numColumns}
           keyExtractor={(item) => String(item.id)}
+          numColumns={numColumns}
           renderItem={({ item }) => (
             <View style={styles.cardWrap}>
               <RoomCard room={item} onPress={() => router.push(`/room/${item.id}`)} />
@@ -372,9 +385,9 @@ const styles = StyleSheet.create({
   applyBtnText: { color: '#FFFFFF', fontWeight: '700', fontSize: 14 },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 12 },
   loadingText: { color: '#717171', fontSize: 14 },
-  listContent: { paddingTop: 12, paddingBottom: 32 },
+  listContent: { paddingTop: 8, paddingBottom: 32, paddingHorizontal: 8 },
   emptyContainer: { flex: 1 },
-  cardWrap: { paddingHorizontal: 16 },
+  cardWrap: { flex: 1, paddingHorizontal: 8 },
   footerLoader: { paddingVertical: 20, alignItems: 'center' },
   emptyState: { alignItems: 'center', padding: 40 },
   emptyEmoji: { fontSize: 52, marginBottom: 12 },
