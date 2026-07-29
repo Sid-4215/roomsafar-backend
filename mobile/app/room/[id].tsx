@@ -1,8 +1,8 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View, ScrollView, StyleSheet, Image,
   TouchableOpacity, Linking, ActivityIndicator,
-  Alert, Dimensions, FlatList,
+  useWindowDimensions, FlatList, Platform,
 } from 'react-native';
 import { Text } from 'react-native-paper';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -11,9 +11,8 @@ import { api } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import type { Room } from '@/lib/types';
 
-const { width: SCREEN_W } = Dimensions.get('window');
-const IMG_H = 320;
 const PLACEHOLDER = 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=800&q=80';
+const MAX_CONTENT_W = 860;   // cap for web wide screens
 
 const FURNISHED_LABEL: Record<string, string> = {
   FURNISHED: 'Furnished',
@@ -25,6 +24,13 @@ export default function RoomDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { token } = useAuth();
   const router = useRouter();
+  const { width: screenW } = useWindowDimensions();
+
+  // On web clamp to MAX_CONTENT_W; on native use full screen
+  const isWeb = Platform.OS === 'web';
+  const contentW = isWeb ? Math.min(screenW, MAX_CONTENT_W) : screenW;
+  // Image height: 56% of content width, capped at 480px
+  const imgH = Math.min(Math.round(contentW * 0.56), 480);
 
   const [room, setRoom] = useState<Room | null>(null);
   const [loading, setLoading] = useState(true);
@@ -139,58 +145,61 @@ export default function RoomDetailScreen() {
 
   return (
     <View style={styles.container}>
-      <ScrollView showsVerticalScrollIndicator={false}>
-        {/* Photo gallery */}
-        <View style={styles.gallery}>
-          <FlatList
-            data={images}
-            horizontal
-            pagingEnabled
-            showsHorizontalScrollIndicator={false}
-            keyExtractor={(_, i) => String(i)}
-            onMomentumScrollEnd={(e) => {
-              setImageIdx(Math.round(e.nativeEvent.contentOffset.x / SCREEN_W));
-            }}
-            renderItem={({ item }) => (
-              <Image source={{ uri: item }} style={styles.galleryImage} resizeMode="cover" />
-            )}
-          />
-
-          {/* Overlay nav */}
-          <View style={styles.galleryOverlay}>
-            <TouchableOpacity style={styles.galleryBack} onPress={() => router.back()}>
-              <MaterialCommunityIcons name="arrow-left" size={22} color="#222222" />
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.galleryFav} onPress={toggleFav}>
-              <MaterialCommunityIcons
-                name={isFav ? 'heart' : 'heart-outline'}
-                size={22}
-                color={isFav ? '#FF385C' : '#222222'}
-              />
-            </TouchableOpacity>
-          </View>
-
-          {/* Dot indicator */}
-          {images.length > 1 && (
-            <View style={styles.dots}>
-              {images.map((_, i) => (
-                <View
-                  key={i}
-                  style={[styles.dot, i === imageIdx && styles.dotActive]}
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={isWeb && styles.webScrollContent}>
+        {/* ── Gallery ── */}
+        <View style={[styles.galleryWrap, isWeb && { alignSelf: 'center', width: contentW }]}>
+          <View style={[styles.gallery, { height: imgH }]}>
+            <FlatList
+              data={images}
+              horizontal
+              pagingEnabled
+              showsHorizontalScrollIndicator={false}
+              keyExtractor={(_, i) => String(i)}
+              onMomentumScrollEnd={(e) => {
+                setImageIdx(Math.round(e.nativeEvent.contentOffset.x / contentW));
+              }}
+              renderItem={({ item }) => (
+                <Image
+                  source={{ uri: item }}
+                  style={{ width: contentW, height: imgH }}
+                  resizeMode="cover"
                 />
-              ))}
-            </View>
-          )}
+              )}
+            />
 
-          {/* Photo count */}
-          <View style={styles.photoCount}>
-            <MaterialCommunityIcons name="image-multiple-outline" size={13} color="#FFFFFF" />
-            <Text style={styles.photoCountText}>{imageIdx + 1}/{images.length}</Text>
+            {/* Overlay nav */}
+            <View style={styles.galleryOverlay}>
+              <TouchableOpacity style={styles.galleryBack} onPress={() => router.back()}>
+                <MaterialCommunityIcons name="arrow-left" size={22} color="#222222" />
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.galleryFav} onPress={toggleFav}>
+                <MaterialCommunityIcons
+                  name={isFav ? 'heart' : 'heart-outline'}
+                  size={22}
+                  color={isFav ? '#FF385C' : '#222222'}
+                />
+              </TouchableOpacity>
+            </View>
+
+            {/* Dot indicator */}
+            {images.length > 1 && (
+              <View style={styles.dots}>
+                {images.map((_, i) => (
+                  <View key={i} style={[styles.dot, i === imageIdx && styles.dotActive]} />
+                ))}
+              </View>
+            )}
+
+            {/* Photo count */}
+            <View style={styles.photoCount}>
+              <MaterialCommunityIcons name="image-multiple-outline" size={13} color="#FFFFFF" />
+              <Text style={styles.photoCountText}>{imageIdx + 1}/{images.length}</Text>
+            </View>
           </View>
         </View>
 
-        {/* Main content */}
-        <View style={styles.content}>
+        {/* ── Main content ── */}
+        <View style={[styles.content, isWeb && { alignSelf: 'center', width: contentW }]}>
           {/* Title row */}
           <View style={styles.titleRow}>
             <View style={styles.typeTag}>
@@ -318,7 +327,7 @@ export default function RoomDetailScreen() {
       </ScrollView>
 
       {/* Sticky bottom CTA */}
-      <View style={styles.stickyBar}>
+      <View style={[styles.stickyBar, isWeb && { maxWidth: MAX_CONTENT_W, alignSelf: 'center', left: 'auto' as any, right: 'auto' as any, borderRadius: 0 }]}>
         <View style={styles.stickyPrice}>
           <Text style={styles.stickyPriceNum}>₹{room.rent.toLocaleString()}</Text>
           <Text style={styles.stickyPriceSub}>/month</Text>
@@ -361,13 +370,19 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
   },
   backBtnText: { color: '#222222', fontWeight: '600' },
+  webScrollContent: {
+    alignItems: 'center',
+  },
+  galleryWrap: {
+    width: '100%',
+    overflow: 'hidden',
+  },
   gallery: {
-    width: SCREEN_W,
-    height: IMG_H,
+    width: '100%',
     position: 'relative',
     backgroundColor: '#F0F0F0',
+    overflow: 'hidden',
   },
-  galleryImage: { width: SCREEN_W, height: IMG_H },
   galleryOverlay: {
     position: 'absolute',
     top: 50,
