@@ -238,7 +238,13 @@ export default function RoomDetailScreen() {
               <View style={styles.infoItem}>
                 <MaterialCommunityIcons name="handshake-outline" size={20} color="#FF385C" />
                 <Text style={styles.infoLabel}>Brokerage</Text>
-                <Text style={styles.infoValue}>{room.brokerageRequired ? 'Yes' : 'None'}</Text>
+                <Text style={styles.infoValue}>
+                  {room.brokerageRequired
+                    ? (room.brokerageAmount
+                        ? `₹${room.brokerageAmount.toLocaleString()}`
+                        : 'Required')
+                    : 'None'}
+                </Text>
               </View>
             )}
             {room.deposit ? (
