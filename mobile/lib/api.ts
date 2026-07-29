@@ -181,8 +181,11 @@ class ApiClient {
 
   // ── Image Upload ──────────────────────────────────────────────────────────
   async uploadImage(formData: FormData): Promise<{ url: string; filename: string }> {
+    // Do NOT set Content-Type manually — axios must auto-set it with the
+    // correct multipart boundary (e.g. "multipart/form-data; boundary=----...").
+    // Explicitly setting it without a boundary causes the server to reject the body.
     const res = await this.client.post('/api/rooms/images/upload', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
+      headers: { 'Content-Type': undefined },
       timeout: 30000,
     });
     return res.data;
