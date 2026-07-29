@@ -2,7 +2,7 @@ import React, { useState, useCallback } from 'react';
 import { useFocusEffect } from 'expo-router';
 import {
   View, FlatList, StyleSheet, ActivityIndicator,
-  RefreshControl, Alert, TouchableOpacity, Image,
+  RefreshControl, TouchableOpacity, Image, Modal, Pressable,
 } from 'react-native';
 import { Text } from 'react-native-paper';
 import { useRouter } from 'expo-router';
@@ -59,6 +59,8 @@ export default function MyRoomsScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
+  const [deleteTarget, setDeleteTarget] = useState<Room | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const load = useCallback(async () => {
     if (!token) { setLoading(false); return; }
@@ -80,25 +82,21 @@ export default function MyRoomsScreen() {
   const onRefresh = () => { setRefreshing(true); load(); };
 
   const handleDelete = (room: Room) => {
-    Alert.alert(
-      'Delete listing',
-      'Are you sure? This cannot be undone.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await api.deleteRoom(room.id);
-              setRooms((prev) => prev.filter((r) => r.id !== room.id));
-            } catch (e: any) {
-              Alert.alert('Error', e.message || 'Delete failed');
-            }
-          },
-        },
-      ]
-    );
+    setDeleteTarget(room);
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    try {
+      await api.deleteRoom(deleteTarget.id);
+      setRooms((prev) => prev.filter((r) => r.id !== deleteTarget.id));
+      setDeleteTarget(null);
+    } catch (e: any) {
+      setDeleteTarget(null);
+    } finally {
+      setDeleting(false);
+    }
   };
 
   if (!token) {
@@ -176,6 +174,42 @@ export default function MyRoomsScreen() {
       >
         <MaterialCommunityIcons name="plus" size={26} color="#FFFFFF" />
       </TouchableOpacity>
+
+      {/* Delete confirmation modal */}
+      <Modal
+        visible={deleteTarget !== null}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setDeleteTarget(null)}
+      >
+        <Pressable style={styles.modalOverlay} onPress={() => setDeleteTarget(null)}>
+          <Pressable style={styles.modalBox} onPress={() => {}}>
+            <MaterialCommunityIcons name="delete-outline" size={36} color="#FF385C" style={{ marginBottom: 12 }} />
+            <Text style={styles.modalTitle}>Delete listing?</Text>
+            <Text style={styles.modalMessage}>This cannot be undone.</Text>
+            <View style={styles.modalActions}>
+              <TouchableOpacity
+                style={styles.modalCancelBtn}
+                onPress={() => setDeleteTarget(null)}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.modalCancelText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalDeleteBtn, deleting && { opacity: 0.6 }]}
+                onPress={confirmDelete}
+                disabled={deleting}
+                activeOpacity={0.8}
+              >
+                {deleting
+                  ? <ActivityIndicator size="small" color="#FFFFFF" />
+                  : <Text style={styles.modalDeleteText}>Delete</Text>
+                }
+              </TouchableOpacity>
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </View>
   );
 }
@@ -313,4 +347,45 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
   },
   signInBtnText: { color: '#FFFFFF', fontWeight: '700', fontSize: 15 },
+  // ── Delete confirmation modal ──
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+  },
+  modalBox: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    padding: 28,
+    width: '100%',
+    maxWidth: 340,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOpacity: 0.15,
+    shadowRadius: 20,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 10,
+  },
+  modalTitle: { fontSize: 18, fontWeight: '800', color: '#222222', marginBottom: 6 },
+  modalMessage: { fontSize: 14, color: '#717171', marginBottom: 24 },
+  modalActions: { flexDirection: 'row', gap: 12, width: '100%' },
+  modalCancelBtn: {
+    flex: 1,
+    borderWidth: 1.5,
+    borderColor: '#DDDDDD',
+    borderRadius: 12,
+    paddingVertical: 13,
+    alignItems: 'center',
+  },
+  modalCancelText: { fontWeight: '700', color: '#222222', fontSize: 14 },
+  modalDeleteBtn: {
+    flex: 1,
+    backgroundColor: '#FF385C',
+    borderRadius: 12,
+    paddingVertical: 13,
+    alignItems: 'center',
+  },
+  modalDeleteText: { fontWeight: '700', color: '#FFFFFF', fontSize: 14 },
 });
