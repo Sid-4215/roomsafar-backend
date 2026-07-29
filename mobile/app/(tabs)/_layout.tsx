@@ -53,12 +53,7 @@ export default function TabLayout() {
       />
       <Tabs.Screen
         name="bookings"
-        options={{
-          title: 'Trips',
-          tabBarIcon: ({ color, focused }) => (
-            <TabIcon name="calendar-check-outline" color={color} focused={focused} />
-          ),
-        }}
+        options={{ href: null }}
       />
       <Tabs.Screen
         name="favorites"
