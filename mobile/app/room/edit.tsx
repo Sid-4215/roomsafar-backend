@@ -254,9 +254,7 @@ export default function EditRoomScreen() {
         })),
       };
       await api.updateRoom(Number(id), req);
-      Alert.alert('✅ Saved', 'Your listing has been updated.', [
-        { text: 'OK', onPress: () => router.back() },
-      ]);
+      router.back();
     } catch (e: any) {
       setError(e.message ?? 'Something went wrong. Please try again.');
     } finally {

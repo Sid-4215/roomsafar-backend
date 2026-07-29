@@ -240,9 +240,7 @@ export default function AddRoomScreen() {
         })),
       };
       await api.createRoom(req);
-      Alert.alert('🎉 Listed!', 'Your room is now live.', [
-        { text: 'OK', onPress: () => router.replace('/(tabs)/my-rooms') },
-      ]);
+      router.replace('/(tabs)/my-rooms');
     } catch (e: any) {
       setError(e.message ?? 'Something went wrong. Please try again.');
     } finally {
