@@ -1,16 +1,21 @@
 import React, { useState } from 'react';
 import {
-  View, ScrollView, StyleSheet, KeyboardAvoidingView,
-  Platform, Alert,
+  View, ScrollView, StyleSheet, KeyboardAvoidingView, Platform,
+  TouchableOpacity, Image, Alert, ActivityIndicator,
 } from 'react-native';
-import { Text, TextInput, Button, Chip, HelperText, Divider } from 'react-native-paper';
+import { Text, TextInput, Button, Chip, HelperText } from 'react-native-paper';
+import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { api } from '@/lib/api';
+import { pickImage, uploadImageAsset } from '@/lib/uploadImage';
 import type { RoomRequest } from '@/lib/types';
 
+/* ─── constants ──────────────────────────────────────────────────────────── */
+const PRIMARY = '#FF385C';
 const TYPES = [
   { label: '1 BHK', value: 'BHK1' },
   { label: '2 BHK', value: 'BHK2' },
+  { label: '3 BHK', value: 'BHK3' },
   { label: 'Studio/RK', value: 'RK' },
   { label: 'Shared', value: 'SHARED' },
   { label: 'PG', value: 'PG' },
@@ -30,16 +35,18 @@ const CONTACT_OPTS = [
   { label: 'Phone', value: 'PHONE' },
   { label: 'Both', value: 'BOTH' },
 ];
-const AMENITIES_LIST = ['WiFi', 'AC', 'Parking', 'Gym', 'Laundry', 'Kitchen', 'Security', 'Power Backup', 'Water'];
+const AMENITIES_LIST = [
+  'WiFi', 'AC', 'Parking', 'Gym', 'Laundry',
+  'Kitchen', 'Security', 'Power Backup', 'Water',
+];
 
-function SectionTitle({ title }: { title: string }) {
-  return <Text variant="titleSmall" style={styles.sectionTitle}>{title}</Text>;
+/* ─── small helpers ──────────────────────────────────────────────────────── */
+function SectionLabel({ text }: { text: string }) {
+  return <Text style={styles.sectionLabel}>{text}</Text>;
 }
 
-function ChipGroup<T extends string>({
-  options,
-  value,
-  onSelect,
+function ChipRow<T extends string>({
+  options, value, onSelect,
 }: {
   options: { label: string; value: T }[];
   value: T;
@@ -47,57 +54,166 @@ function ChipGroup<T extends string>({
 }) {
   return (
     <View style={styles.chipRow}>
-      {options.map((o) => (
-        <Chip
-          key={o.value}
-          selected={value === o.value}
-          onPress={() => onSelect(o.value)}
-          style={[styles.chip, value === o.value && styles.chipActive]}
-          textStyle={[styles.chipText, value === o.value && styles.chipTextActive]}
-          compact
-        >
-          {o.label}
-        </Chip>
-      ))}
+      {options.map((o) => {
+        const active = value === o.value;
+        return (
+          <Chip
+            key={o.value}
+            selected={active}
+            onPress={() => onSelect(o.value)}
+            style={[styles.chip, active && styles.chipActive]}
+            textStyle={[styles.chipText, active && styles.chipTextActive]}
+            compact
+          >
+            {o.label}
+          </Chip>
+        );
+      })}
     </View>
   );
 }
 
+/* ─── photo grid ─────────────────────────────────────────────────────────── */
+function PhotoGrid({
+  photos,
+  uploading,
+  onAdd,
+  onRemove,
+}: {
+  photos: string[];
+  uploading: boolean;
+  onAdd: () => void;
+  onRemove: (index: number) => void;
+}) {
+  const slots = [...photos];
+  // show an "add" tile if we have fewer than 5 photos
+  const canAdd = slots.length < 5;
+
+  return (
+    <View>
+      <View style={styles.photoGrid}>
+        {slots.map((uri, i) => (
+          <View key={uri + i} style={styles.photoTile}>
+            <Image source={{ uri }} style={styles.photoImage} />
+            <TouchableOpacity
+              style={styles.photoDelete}
+              onPress={() => onRemove(i)}
+              hitSlop={{ top: 6, right: 6, bottom: 6, left: 6 }}
+            >
+              <Ionicons name="close-circle" size={22} color="#fff" />
+            </TouchableOpacity>
+            {i === 0 && (
+              <View style={styles.photoCover}>
+                <Text style={styles.photoCoverText}>Cover</Text>
+              </View>
+            )}
+          </View>
+        ))}
+
+        {canAdd && (
+          <TouchableOpacity
+            style={styles.photoAdd}
+            onPress={onAdd}
+            disabled={uploading}
+          >
+            {uploading ? (
+              <ActivityIndicator color={PRIMARY} />
+            ) : (
+              <>
+                <Ionicons name="camera-outline" size={26} color={PRIMARY} />
+                <Text style={styles.photoAddText}>
+                  {slots.length === 0 ? 'Add Photos' : 'Add More'}
+                </Text>
+              </>
+            )}
+          </TouchableOpacity>
+        )}
+      </View>
+
+      {slots.length === 0 && !uploading && (
+        <Text style={styles.photoHint}>
+          Add at least one photo — listings with photos get 3× more enquiries.
+        </Text>
+      )}
+    </View>
+  );
+}
+
+/* ─── main screen ────────────────────────────────────────────────────────── */
 export default function AddRoomScreen() {
   const router = useRouter();
-  const [loading, setLoading] = useState(false);
+
+  const [submitting, setSubmitting] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
 
-  // Form state
+  // photos
+  const [photos, setPhotos] = useState<string[]>([]);
+
+  // pricing
   const [rent, setRent] = useState('');
   const [deposit, setDeposit] = useState('');
+
+  // room meta
   const [type, setType] = useState<string>('BHK1');
   const [furnished, setFurnished] = useState<string>('FURNISHED');
   const [gender, setGender] = useState<string>('ANYONE');
-  const [contactPref, setContactPref] = useState<string>('WHATSAPP');
-  const [whatsapp, setWhatsapp] = useState('');
-  const [phone, setPhone] = useState('');
-  const [description, setDescription] = useState('');
+
+  // address
   const [line1, setLine1] = useState('');
   const [area, setArea] = useState('');
   const [city, setCity] = useState('');
   const [state, setState] = useState('');
   const [pincode, setPincode] = useState('');
+
+  // contact
+  const [whatsapp, setWhatsapp] = useState('');
+  const [phone, setPhone] = useState('');
+  const [contactPref, setContactPref] = useState<string>('WHATSAPP');
+  const [description, setDescription] = useState('');
+
+  // amenities
   const [amenities, setAmenities] = useState<string[]>([]);
-  const [imageUrl, setImageUrl] = useState('');
 
   const toggleAmenity = (a: string) =>
-    setAmenities((prev) => prev.includes(a) ? prev.filter((x) => x !== a) : [...prev, a]);
+    setAmenities((prev) =>
+      prev.includes(a) ? prev.filter((x) => x !== a) : [...prev, a],
+    );
 
-  const handleSubmit = async () => {
-    if (!rent) { setError('Rent is required'); return; }
-    if (!area && !city) { setError('Area or city is required'); return; }
-    if (!whatsapp || whatsapp.replace(/\D/g, '').length !== 10) {
-      setError('WhatsApp must be exactly 10 digits'); return;
+  /* pick + upload a photo */
+  const handlePickPhoto = async () => {
+    try {
+      setUploading(true);
+      const asset = await pickImage();
+      if (!asset) return;
+      const url = await uploadImageAsset(asset);
+      setPhotos((prev) => [...prev, url]);
+      setError('');
+    } catch (e: any) {
+      Alert.alert('Upload failed', e.message ?? 'Could not upload photo. Please try again.');
+    } finally {
+      setUploading(false);
     }
-    if (!imageUrl) { setError('At least one image URL is required'); return; }
+  };
+
+  const handleRemovePhoto = (index: number) =>
+    setPhotos((prev) => prev.filter((_, i) => i !== index));
+
+  /* submit the listing */
+  const handleSubmit = async () => {
+    if (!rent || Number(rent) < 1000) {
+      setError('Rent must be at least ₹1,000'); return;
+    }
+    if (!area && !city) { setError('Please enter at least an area or city'); return; }
+    if (!whatsapp || whatsapp.replace(/\D/g, '').length !== 10) {
+      setError('WhatsApp number must be exactly 10 digits'); return;
+    }
+    if (photos.length === 0) {
+      setError('Please add at least one photo'); return;
+    }
+
     setError('');
-    setLoading(true);
+    setSubmitting(true);
     try {
       const req: RoomRequest = {
         rent: Number(rent),
@@ -112,153 +228,272 @@ export default function AddRoomScreen() {
         brokerageRequired: false,
         amenities,
         address: { line1, area, city, state, pincode },
-        images: [{ url: imageUrl, label: 'EXTERIOR', sequence: 0 }],
+        images: photos.map((url, i) => ({
+          url,
+          label: i === 0 ? 'EXTERIOR' : 'OTHER',
+          sequence: i,
+        })),
       };
       await api.createRoom(req);
-      Alert.alert('Success', 'Room listed successfully!', [
-        { text: 'OK', onPress: () => router.back() },
+      Alert.alert('🎉 Listed!', 'Your room is now live.', [
+        { text: 'OK', onPress: () => router.replace('/(tabs)/my-rooms') },
       ]);
     } catch (e: any) {
-      setError(e.message || 'Failed to create listing');
+      setError(e.message ?? 'Something went wrong. Please try again.');
     } finally {
-      setLoading(false);
+      setSubmitting(false);
     }
   };
 
+  /* ── render ── */
   return (
-    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <ScrollView style={styles.container} contentContainerStyle={styles.inner} keyboardShouldPersistTaps="handled">
-        <Text variant="headlineSmall" style={styles.heading}>List Your Room</Text>
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+    >
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.inner}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
+        {/* header */}
+        <Text style={styles.heading}>List your space</Text>
+        <Text style={styles.subheading}>
+          Fill in the details below and your room will go live instantly.
+        </Text>
 
-        {/* Pricing */}
-        <SectionTitle title="💰 Pricing" />
+        {/* ── Photos ── */}
+        <SectionLabel text="Photos" />
+        <PhotoGrid
+          photos={photos}
+          uploading={uploading}
+          onAdd={handlePickPhoto}
+          onRemove={handleRemovePhoto}
+        />
+
+        {/* ── Pricing ── */}
+        <SectionLabel text="Pricing" />
         <View style={styles.row2}>
           <TextInput
-            label="Monthly Rent (₹) *"
+            label="Monthly Rent (₹)"
             value={rent}
             onChangeText={setRent}
             keyboardType="numeric"
             mode="outlined"
             style={[styles.input, { flex: 1 }]}
+            outlineColor="#E0E0E0"
+            activeOutlineColor={PRIMARY}
           />
           <TextInput
-            label="Deposit (₹)"
+            label="Security Deposit (₹)"
             value={deposit}
             onChangeText={setDeposit}
             keyboardType="numeric"
             mode="outlined"
             style={[styles.input, { flex: 1 }]}
+            outlineColor="#E0E0E0"
+            activeOutlineColor={PRIMARY}
           />
         </View>
 
-        {/* Room Type */}
-        <SectionTitle title="🏠 Room Type" />
-        <ChipGroup options={TYPES} value={type} onSelect={setType} />
+        {/* ── Room type ── */}
+        <SectionLabel text="Room Type" />
+        <ChipRow options={TYPES} value={type} onSelect={setType} />
 
-        {/* Furnished */}
-        <SectionTitle title="🛋️ Furnishing" />
-        <ChipGroup options={FURNISHED_OPTS} value={furnished} onSelect={setFurnished} />
+        {/* ── Furnishing ── */}
+        <SectionLabel text="Furnishing" />
+        <ChipRow options={FURNISHED_OPTS} value={furnished} onSelect={setFurnished} />
 
-        {/* Gender */}
-        <SectionTitle title="👤 Preferred For" />
-        <ChipGroup options={GENDER_OPTS} value={gender} onSelect={setGender} />
+        {/* ── Gender preference ── */}
+        <SectionLabel text="Preferred Tenants" />
+        <ChipRow options={GENDER_OPTS} value={gender} onSelect={setGender} />
 
-        <Divider style={styles.divider} />
-
-        {/* Address */}
-        <SectionTitle title="📍 Address" />
-        <TextInput label="Street / Line 1" value={line1} onChangeText={setLine1} mode="outlined" style={styles.input} />
-        <View style={styles.row2}>
-          <TextInput label="Area *" value={area} onChangeText={setArea} mode="outlined" style={[styles.input, { flex: 1 }]} />
-          <TextInput label="City *" value={city} onChangeText={setCity} mode="outlined" style={[styles.input, { flex: 1 }]} />
-        </View>
-        <View style={styles.row2}>
-          <TextInput label="State" value={state} onChangeText={setState} mode="outlined" style={[styles.input, { flex: 1 }]} />
-          <TextInput label="Pincode" value={pincode} onChangeText={setPincode} keyboardType="numeric" mode="outlined" style={[styles.input, { flex: 1 }]} />
-        </View>
-
-        <Divider style={styles.divider} />
-
-        {/* Contact */}
-        <SectionTitle title="📞 Contact" />
-        <ChipGroup options={CONTACT_OPTS} value={contactPref} onSelect={setContactPref} />
-        <View style={styles.row2}>
-          <TextInput label="WhatsApp" value={whatsapp} onChangeText={setWhatsapp} keyboardType="phone-pad" mode="outlined" style={[styles.input, { flex: 1 }]} />
-          <TextInput label="Phone" value={phone} onChangeText={setPhone} keyboardType="phone-pad" mode="outlined" style={[styles.input, { flex: 1 }]} />
-        </View>
-
-        <Divider style={styles.divider} />
-
-        {/* Description */}
-        <SectionTitle title="📝 Description" />
+        {/* ── Location ── */}
+        <SectionLabel text="Location" />
         <TextInput
-          label="Describe your room…"
+          label="Street / Landmark"
+          value={line1}
+          onChangeText={setLine1}
+          mode="outlined"
+          style={styles.input}
+          outlineColor="#E0E0E0"
+          activeOutlineColor={PRIMARY}
+        />
+        <View style={styles.row2}>
+          <TextInput
+            label="Area *"
+            value={area}
+            onChangeText={setArea}
+            mode="outlined"
+            style={[styles.input, { flex: 1 }]}
+            outlineColor="#E0E0E0"
+            activeOutlineColor={PRIMARY}
+          />
+          <TextInput
+            label="City *"
+            value={city}
+            onChangeText={setCity}
+            mode="outlined"
+            style={[styles.input, { flex: 1 }]}
+            outlineColor="#E0E0E0"
+            activeOutlineColor={PRIMARY}
+          />
+        </View>
+        <View style={styles.row2}>
+          <TextInput
+            label="State"
+            value={state}
+            onChangeText={setState}
+            mode="outlined"
+            style={[styles.input, { flex: 1 }]}
+            outlineColor="#E0E0E0"
+            activeOutlineColor={PRIMARY}
+          />
+          <TextInput
+            label="Pincode"
+            value={pincode}
+            onChangeText={setPincode}
+            keyboardType="numeric"
+            mode="outlined"
+            style={[styles.input, { flex: 1 }]}
+            outlineColor="#E0E0E0"
+            activeOutlineColor={PRIMARY}
+          />
+        </View>
+
+        {/* ── Amenities ── */}
+        <SectionLabel text="Amenities" />
+        <View style={styles.chipRow}>
+          {AMENITIES_LIST.map((a) => {
+            const active = amenities.includes(a);
+            return (
+              <Chip
+                key={a}
+                selected={active}
+                onPress={() => toggleAmenity(a)}
+                style={[styles.chip, active && styles.chipActive]}
+                textStyle={[styles.chipText, active && styles.chipTextActive]}
+                compact
+              >
+                {a}
+              </Chip>
+            );
+          })}
+        </View>
+
+        {/* ── Contact ── */}
+        <SectionLabel text="Contact Details" />
+        <View style={styles.row2}>
+          <TextInput
+            label="WhatsApp * (10 digits)"
+            value={whatsapp}
+            onChangeText={setWhatsapp}
+            keyboardType="phone-pad"
+            mode="outlined"
+            style={[styles.input, { flex: 1 }]}
+            outlineColor="#E0E0E0"
+            activeOutlineColor={PRIMARY}
+          />
+          <TextInput
+            label="Phone (optional)"
+            value={phone}
+            onChangeText={setPhone}
+            keyboardType="phone-pad"
+            mode="outlined"
+            style={[styles.input, { flex: 1 }]}
+            outlineColor="#E0E0E0"
+            activeOutlineColor={PRIMARY}
+          />
+        </View>
+        <SectionLabel text="Contact Preference" />
+        <ChipRow options={CONTACT_OPTS} value={contactPref} onSelect={setContactPref} />
+
+        <TextInput
+          label="Description (optional)"
           value={description}
           onChangeText={setDescription}
           mode="outlined"
           multiline
           numberOfLines={4}
-          style={styles.input}
+          style={[styles.input, { minHeight: 96 }]}
+          outlineColor="#E0E0E0"
+          activeOutlineColor={PRIMARY}
         />
 
-        {/* Amenities */}
-        <SectionTitle title="✨ Amenities" />
-        <View style={styles.chipRow}>
-          {AMENITIES_LIST.map((a) => (
-            <Chip
-              key={a}
-              selected={amenities.includes(a)}
-              onPress={() => toggleAmenity(a)}
-              style={[styles.chip, amenities.includes(a) && styles.chipActive]}
-              textStyle={[styles.chipText, amenities.includes(a) && styles.chipTextActive]}
-              compact
-            >
-              {a}
-            </Chip>
-          ))}
-        </View>
-
-        {/* Image URL */}
-        <SectionTitle title="🖼️ Image URL" />
-        <TextInput
-          label="Paste a photo URL (optional)"
-          value={imageUrl}
-          onChangeText={setImageUrl}
-          mode="outlined"
-          style={styles.input}
-          autoCapitalize="none"
-        />
-
-        {error ? <HelperText type="error" visible>{error}</HelperText> : null}
+        {error ? <HelperText type="error" visible style={styles.errorText}>{error}</HelperText> : null}
 
         <Button
           mode="contained"
           onPress={handleSubmit}
-          loading={loading}
-          disabled={loading}
+          loading={submitting}
+          disabled={submitting || uploading}
           style={styles.submitBtn}
-          contentStyle={{ paddingVertical: 6 }}
-          labelStyle={{ fontSize: 16, fontWeight: '700' }}
+          contentStyle={styles.submitContent}
+          labelStyle={styles.submitLabel}
+          buttonColor={PRIMARY}
         >
-          List Room
+          List My Room
         </Button>
       </ScrollView>
     </KeyboardAvoidingView>
   );
 }
 
+/* ─── styles ─────────────────────────────────────────────────────────────── */
+const TILE = 104;
+
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f8fafc' },
-  inner: { padding: 20, paddingBottom: 40 },
-  heading: { fontWeight: '800', color: '#1e293b', marginBottom: 20 },
-  sectionTitle: { fontWeight: '700', color: '#475569', marginBottom: 8, marginTop: 4 },
+  container: { flex: 1, backgroundColor: '#fff' },
+  scroll: { flex: 1 },
+  inner: { padding: 20, paddingBottom: 48 },
+
+  heading: { fontSize: 24, fontWeight: '800', color: '#222', marginBottom: 4 },
+  subheading: { fontSize: 14, color: '#717171', marginBottom: 24 },
+
+  sectionLabel: {
+    fontSize: 15, fontWeight: '700', color: '#222',
+    marginTop: 20, marginBottom: 10,
+  },
+
   input: { marginBottom: 10, backgroundColor: '#fff' },
   row2: { flexDirection: 'row', gap: 10 },
-  chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 12 },
-  chip: { backgroundColor: '#f1f5f9', height: 32 },
-  chipActive: { backgroundColor: '#1e40af' },
-  chipText: { fontSize: 12 },
+
+  chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 4 },
+  chip: { backgroundColor: '#F7F7F7', borderWidth: 1, borderColor: '#E0E0E0' },
+  chipActive: { backgroundColor: '#222', borderColor: '#222' },
+  chipText: { fontSize: 13, color: '#444' },
   chipTextActive: { color: '#fff' },
-  divider: { marginVertical: 12 },
-  submitBtn: { marginTop: 16, borderRadius: 14 },
+
+  /* photo grid */
+  photoGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 8 },
+  photoTile: {
+    width: TILE, height: TILE, borderRadius: 12, overflow: 'hidden',
+    position: 'relative',
+  },
+  photoImage: { width: '100%', height: '100%' },
+  photoDelete: {
+    position: 'absolute', top: 4, right: 4,
+    backgroundColor: 'rgba(0,0,0,0.45)', borderRadius: 12,
+  },
+  photoCover: {
+    position: 'absolute', bottom: 0, left: 0, right: 0,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    alignItems: 'center', paddingVertical: 2,
+  },
+  photoCoverText: { color: '#fff', fontSize: 10, fontWeight: '700' },
+  photoAdd: {
+    width: TILE, height: TILE, borderRadius: 12,
+    borderWidth: 1.5, borderColor: PRIMARY, borderStyle: 'dashed',
+    alignItems: 'center', justifyContent: 'center', gap: 4,
+    backgroundColor: '#FFF5F7',
+  },
+  photoAddText: { fontSize: 11, color: PRIMARY, fontWeight: '600' },
+  photoHint: { fontSize: 12, color: '#717171', marginBottom: 8, lineHeight: 18 },
+
+  errorText: { fontSize: 13, marginBottom: 4 },
+
+  submitBtn: { marginTop: 20, borderRadius: 12 },
+  submitContent: { paddingVertical: 8 },
+  submitLabel: { fontSize: 16, fontWeight: '700', letterSpacing: 0.3 },
 });

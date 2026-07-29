@@ -178,6 +178,15 @@ class ApiClient {
   async deleteRoomieListing(id: number): Promise<void> {
     await this.client.delete(`/api/roomiesync/listings/${id}`);
   }
+
+  // ── Image Upload ──────────────────────────────────────────────────────────
+  async uploadImage(formData: FormData): Promise<{ url: string; filename: string }> {
+    const res = await this.client.post('/api/rooms/images/upload', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+      timeout: 30000,
+    });
+    return res.data;
+  }
 }
 
 export const api = new ApiClient();
