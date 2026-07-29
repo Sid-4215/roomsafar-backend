@@ -122,7 +122,7 @@ const styles = StyleSheet.create({
   },
   image: {
     width: '100%',
-    height: 220,
+    aspectRatio: 4 / 3,
     backgroundColor: '#F0F0F0',
   },
   typeBadge: {
