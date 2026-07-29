@@ -43,15 +43,6 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="roomiesync"
-        options={{
-          title: 'RoomieSync',
-          tabBarIcon: ({ color, focused }) => (
-            <TabIcon name="account-group-outline" color={color} focused={focused} />
-          ),
-        }}
-      />
-      <Tabs.Screen
         name="favorites"
         options={{
           title: 'Saved',

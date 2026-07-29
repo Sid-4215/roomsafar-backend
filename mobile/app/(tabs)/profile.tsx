@@ -137,13 +137,6 @@ export default function ProfileScreen() {
             sublabel="Find your next home"
             onPress={() => router.push('/(tabs)/')}
           />
-          <View style={styles.rowDivider} />
-          <MenuRow
-            icon="account-group-outline"
-            label="RoomieSync"
-            sublabel="Find or post roommate listings"
-            onPress={() => router.push('/(tabs)/roomiesync')}
-          />
         </View>
       </View>
 
