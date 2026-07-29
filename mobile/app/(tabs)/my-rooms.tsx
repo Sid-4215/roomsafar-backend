@@ -1,4 +1,5 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
+import { useFocusEffect } from 'expo-router';
 import {
   View, FlatList, StyleSheet, ActivityIndicator,
   RefreshControl, Alert, TouchableOpacity, Image,
@@ -74,7 +75,7 @@ export default function MyRoomsScreen() {
     }
   }, [token]);
 
-  useEffect(() => { load(); }, [load]);
+  useFocusEffect(useCallback(() => { load(); }, [load]));
 
   const onRefresh = () => { setRefreshing(true); load(); };
 

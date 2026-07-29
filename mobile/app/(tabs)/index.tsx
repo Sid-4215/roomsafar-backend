@@ -1,4 +1,5 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
+import { useFocusEffect } from 'expo-router';
 import {
   View, ScrollView, StyleSheet, FlatList,
   TouchableOpacity, RefreshControl, ActivityIndicator,
@@ -56,7 +57,7 @@ export default function HomeScreen() {
     }
   }, []);
 
-  useEffect(() => { loadData(); }, [loadData]);
+  useFocusEffect(useCallback(() => { loadData(); }, [loadData]));
 
   const onRefresh = () => { setRefreshing(true); loadData(); };
 
