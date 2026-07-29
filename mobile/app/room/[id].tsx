@@ -37,7 +37,6 @@ export default function RoomDetailScreen() {
   const [error, setError] = useState('');
   const [isFav, setIsFav] = useState(false);
   const [favLoading, setFavLoading] = useState(false);
-  const [booking, setBooking] = useState(false);
   const [snackMsg, setSnackMsg] = useState('');
   const [imageIdx, setImageIdx] = useState(0);
 
@@ -81,31 +80,6 @@ export default function RoomDetailScreen() {
       showSnack(e.message || 'Something went wrong');
     } finally {
       setFavLoading(false);
-    }
-  };
-
-  const handleBook = async () => {
-    if (!token) { showSnack('Sign in to book this room'); return; }
-    if (!room) return;
-
-    const today = new Date();
-    const startDate = new Date(today); startDate.setDate(today.getDate() + 1);
-    const endDate = new Date(startDate); endDate.setDate(startDate.getDate() + 30);
-    const fmt = (d: Date) => d.toISOString().split('T')[0];
-
-    setBooking(true);
-    try {
-      const result = await api.createBooking({
-        roomId: room.id,
-        amount: room.rent,
-        startDate: fmt(startDate),
-        endDate: fmt(endDate),
-      });
-      showSnack(`✅ Booking #${result.bookingId} confirmed!`);
-    } catch (e: any) {
-      showSnack(e.message || 'Booking failed');
-    } finally {
-      setBooking(false);
     }
   };
 
@@ -321,26 +295,10 @@ export default function RoomDetailScreen() {
             </>
           )}
 
-          {/* Bottom padding for sticky bar */}
-          <View style={{ height: 100 }} />
+          {/* Bottom padding */}
+          <View style={{ height: 32 }} />
         </View>
       </ScrollView>
-
-      {/* Sticky bottom CTA */}
-      <View style={[styles.stickyBar, isWeb && { maxWidth: MAX_CONTENT_W, alignSelf: 'center', left: 'auto' as any, right: 'auto' as any, borderRadius: 0 }]}>
-        <View style={styles.stickyPrice}>
-          <Text style={styles.stickyPriceNum}>₹{room.rent.toLocaleString()}</Text>
-          <Text style={styles.stickyPriceSub}>/month</Text>
-        </View>
-        <TouchableOpacity
-          style={[styles.bookBtn, booking && styles.bookBtnDisabled]}
-          onPress={handleBook}
-          disabled={booking}
-          activeOpacity={0.85}
-        >
-          <Text style={styles.bookBtnText}>{booking ? 'Booking…' : 'Book Now'}</Text>
-        </TouchableOpacity>
-      </View>
 
       {/* Snackbar */}
       {snackMsg ? (
@@ -534,42 +492,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#F0FFF4',
   },
   contactBtnText: { fontSize: 14, fontWeight: '700', color: '#222222' },
-  stickyBar: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: '#FFFFFF',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    paddingBottom: 28,
-    borderTopWidth: 1,
-    borderTopColor: '#F0F0F0',
-    elevation: 12,
-    shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowRadius: 16,
-    shadowOffset: { width: 0, height: -4 },
-  },
-  stickyPrice: { flexDirection: 'row', alignItems: 'baseline', gap: 3 },
-  stickyPriceNum: { fontSize: 22, fontWeight: '800', color: '#222222' },
-  stickyPriceSub: { fontSize: 13, color: '#717171' },
-  bookBtn: {
-    backgroundColor: '#FF385C',
-    borderRadius: 14,
-    paddingHorizontal: 32,
-    paddingVertical: 15,
-    elevation: 3,
-    shadowColor: '#FF385C',
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 4 },
-  },
-  bookBtnDisabled: { opacity: 0.65 },
-  bookBtnText: { color: '#FFFFFF', fontWeight: '800', fontSize: 16 },
   snackbar: {
     position: 'absolute',
     bottom: 100,
