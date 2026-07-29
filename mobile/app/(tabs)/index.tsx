@@ -252,7 +252,7 @@ export default function HomeScreen() {
       keyExtractor={(item) => String(item.id)}
       numColumns={numColumns}
       renderItem={({ item }) => (
-        <View style={styles.cardWrap}>
+        <View style={[styles.cardWrap, { width: `${100 / numColumns}%` as any }]}>
           <RoomCard room={item} onPress={() => router.push(`/room/${item.id}`)} />
         </View>
       )}
@@ -444,7 +444,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 6,
     paddingVertical: 1,
   },
-  cardWrap: { flex: 1, paddingHorizontal: 8 },
+  cardWrap: { paddingHorizontal: 8 },
   cardWrapGrid: { flex: 1, paddingHorizontal: 8 },
   listGrid: { paddingHorizontal: 8 },
   footerLoader: { paddingVertical: 20, alignItems: 'center' },

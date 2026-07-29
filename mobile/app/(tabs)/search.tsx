@@ -224,7 +224,7 @@ export default function SearchScreen() {
           keyExtractor={(item) => String(item.id)}
           numColumns={numColumns}
           renderItem={({ item }) => (
-            <View style={styles.cardWrap}>
+            <View style={[styles.cardWrap, { width: `${100 / numColumns}%` as any }]}>
               <RoomCard room={item} onPress={() => router.push(`/room/${item.id}`)} />
             </View>
           )}
@@ -387,7 +387,7 @@ const styles = StyleSheet.create({
   loadingText: { color: '#717171', fontSize: 14 },
   listContent: { paddingTop: 8, paddingBottom: 32, paddingHorizontal: 8 },
   emptyContainer: { flex: 1 },
-  cardWrap: { flex: 1, paddingHorizontal: 8 },
+  cardWrap: { paddingHorizontal: 8 },
   footerLoader: { paddingVertical: 20, alignItems: 'center' },
   emptyState: { alignItems: 'center', padding: 40 },
   emptyEmoji: { fontSize: 52, marginBottom: 12 },

@@ -93,7 +93,7 @@ export default function FavoritesScreen() {
       keyExtractor={(item) => String(item.id)}
       numColumns={numColumns}
       renderItem={({ item }) => (
-        <View style={styles.cardWrap}>
+        <View style={[styles.cardWrap, { width: `${100 / numColumns}%` as any }]}>
           <RoomCard room={item} onPress={() => router.push(`/room/${item.id}`)} />
         </View>
       )}
@@ -135,7 +135,7 @@ const styles = StyleSheet.create({
   headerSubtitle: { fontSize: 14, color: '#717171', marginTop: 3 },
   list: { backgroundColor: '#F7F7F7', paddingBottom: 32, paddingHorizontal: 8 },
   emptyContainer: { flex: 1, backgroundColor: '#F7F7F7' },
-  cardWrap: { flex: 1, paddingHorizontal: 8 },
+  cardWrap: { paddingHorizontal: 8 },
   center: {
     flex: 1,
     justifyContent: 'center',
