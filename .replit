@@ -29,7 +29,7 @@ author = "agent"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "bash start.sh"
-waitForPort = 8080
+waitForPort = 8761
 
 [workflows.workflow.metadata]
 outputType = "console"

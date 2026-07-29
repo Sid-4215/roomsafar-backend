@@ -22,10 +22,8 @@ if [ ! -d "node_modules" ] || [ "$INSTALLED_EXPO" = "none" ] || [[ "$INSTALLED_E
   npm install --legacy-peer-deps
 fi
 
-echo "🚀 Starting Expo Metro on port 5001 with tunnel (for Expo Go)..."
-# --tunnel creates an ngrok public URL so Expo Go on any device can scan the QR.
-# @expo/ngrok is listed in package.json so this works without extra installs.
-EXPO_NO_TELEMETRY=1 BROWSER=none npx expo start --port 5001 --web --tunnel &
+echo "🚀 Starting Expo Metro on port 5001 (web mode)..."
+EXPO_NO_TELEMETRY=1 BROWSER=none npx expo start --port 5001 --web &
 EXPO_PID=$!
 
 # Give Metro time to start before proxy comes up
