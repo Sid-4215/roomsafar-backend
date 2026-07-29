@@ -3,7 +3,6 @@ import { storage } from './storage';
 import type {
   AuthResponse, Room, RoomRequest, PaginatedResponse,
   SearchParams, Booking, BookingRequest, Favorite, PaymentOrder,
-  RoomieListing,
 } from './types';
 
 // Empty string → relative URLs (same-origin via the proxy on port 5000).
@@ -149,34 +148,6 @@ class ApiClient {
       receipt: receipt ?? `pay_${Date.now()}`,
     });
     return res.data;
-  }
-
-  // ── RoomieSync ────────────────────────────────────────────────────────────
-  async getRoomieListings(params?: {
-    query?: string;
-    listingType?: string;
-    rent?: number;
-    area?: string;
-    city?: string;
-    page?: number;
-    size?: number;
-  }): Promise<PaginatedResponse<RoomieListing>> {
-    const res = await this.client.get('/api/roomiesync/listings', { params });
-    return res.data;
-  }
-
-  async getMyRoomieListings(page = 0, size = 20): Promise<PaginatedResponse<RoomieListing>> {
-    const res = await this.client.get('/api/roomiesync/listings/my', { params: { page, size } });
-    return res.data;
-  }
-
-  async createRoomieListing(data: Partial<RoomieListing>): Promise<RoomieListing> {
-    const res = await this.client.post('/api/roomiesync/listings', data);
-    return res.data;
-  }
-
-  async deleteRoomieListing(id: number): Promise<void> {
-    await this.client.delete(`/api/roomiesync/listings/${id}`);
   }
 
   // ── Image Upload ──────────────────────────────────────────────────────────
