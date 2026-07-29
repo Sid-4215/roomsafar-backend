@@ -135,16 +135,25 @@ public class RoomServiceImpl implements RoomService {
         Specification<Room> spec = (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
 
-            // ------- Area -------
+            // ------- Location (area OR city) -------
+            // When the user types a location it could match area or city — use OR so
+            // either field satisfies the query (avoids AND that forces both to match).
+            Predicate areaPred = null;
+            Predicate cityPred = null;
             if (area != null && !area.isBlank()) {
-                predicates.add(cb.like(cb.lower(root.get("address").get("area")),
-                        "%" + area.toLowerCase() + "%"));
+                areaPred = cb.like(cb.lower(root.get("address").get("area")),
+                        "%" + area.toLowerCase() + "%");
             }
-
-            // ------- City -------
             if (city != null && !city.isBlank()) {
-                predicates.add(cb.like(cb.lower(root.get("address").get("city")),
-                        "%" + city.toLowerCase() + "%"));
+                cityPred = cb.like(cb.lower(root.get("address").get("city")),
+                        "%" + city.toLowerCase() + "%");
+            }
+            if (areaPred != null && cityPred != null) {
+                predicates.add(cb.or(areaPred, cityPred));
+            } else if (areaPred != null) {
+                predicates.add(areaPred);
+            } else if (cityPred != null) {
+                predicates.add(cityPred);
             }
 
             // ------- Rent -------
