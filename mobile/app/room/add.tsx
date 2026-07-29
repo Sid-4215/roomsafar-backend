@@ -166,6 +166,10 @@ export default function AddRoomScreen() {
   const [state, setState] = useState('');
   const [pincode, setPincode] = useState('');
 
+  // brokerage
+  const [brokerageRequired, setBrokerageRequired] = useState(false);
+  const [brokerageAmount, setBrokerageAmount] = useState('');
+
   // contact
   const [whatsapp, setWhatsapp] = useState('');
   const [phone, setPhone] = useState('');
@@ -225,7 +229,8 @@ export default function AddRoomScreen() {
         whatsapp: whatsapp.replace(/\D/g, ''),
         phone: phone ? phone.replace(/\D/g, '') : undefined,
         description: description || undefined,
-        brokerageRequired: false,
+        brokerageRequired,
+        brokerageAmount: brokerageRequired && brokerageAmount ? Number(brokerageAmount) : undefined,
         amenities,
         address: { line1, area, city, state, pincode },
         images: photos.map((url, i) => ({
@@ -296,6 +301,41 @@ export default function AddRoomScreen() {
             activeOutlineColor={PRIMARY}
           />
         </View>
+
+        {/* ── Brokerage ── */}
+        <SectionLabel text="Brokerage" />
+        <View style={styles.brokerageRow}>
+          <TouchableOpacity
+            style={[styles.brokerageBtn, !brokerageRequired && styles.brokerageBtnActive]}
+            onPress={() => { setBrokerageRequired(false); setBrokerageAmount(''); }}
+            activeOpacity={0.8}
+          >
+            <Text style={[styles.brokerageBtnText, !brokerageRequired && styles.brokerageBtnTextActive]}>
+              No Brokerage
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.brokerageBtn, brokerageRequired && styles.brokerageBtnActiveRed]}
+            onPress={() => setBrokerageRequired(true)}
+            activeOpacity={0.8}
+          >
+            <Text style={[styles.brokerageBtnText, brokerageRequired && styles.brokerageBtnTextActive]}>
+              Brokerage Required
+            </Text>
+          </TouchableOpacity>
+        </View>
+        {brokerageRequired && (
+          <TextInput
+            label="Brokerage Amount (₹)"
+            value={brokerageAmount}
+            onChangeText={setBrokerageAmount}
+            keyboardType="numeric"
+            mode="outlined"
+            style={styles.input}
+            outlineColor="#E0E0E0"
+            activeOutlineColor={PRIMARY}
+          />
+        )}
 
         {/* ── Room type ── */}
         <SectionLabel text="Room Type" />
@@ -491,6 +531,16 @@ const styles = StyleSheet.create({
   photoAddText: { fontSize: 11, color: PRIMARY, fontWeight: '600' },
   photoHint: { fontSize: 12, color: '#717171', marginBottom: 8, lineHeight: 18 },
 
+  brokerageRow: { flexDirection: 'row', gap: 10, marginBottom: 10 },
+  brokerageBtn: {
+    flex: 1, paddingVertical: 11, borderRadius: 12,
+    borderWidth: 1.5, borderColor: '#E0E0E0',
+    alignItems: 'center', backgroundColor: '#F7F7F7',
+  },
+  brokerageBtnActive: { backgroundColor: '#222', borderColor: '#222' },
+  brokerageBtnActiveRed: { backgroundColor: '#FF385C', borderColor: '#FF385C' },
+  brokerageBtnText: { fontSize: 13, fontWeight: '600', color: '#444' },
+  brokerageBtnTextActive: { color: '#fff' },
   errorText: { fontSize: 13, marginBottom: 4 },
 
   submitBtn: { marginTop: 20, borderRadius: 12 },
