@@ -97,11 +97,6 @@ export default function ProfileScreen() {
 
       {/* Quick stats */}
       <View style={styles.statsRow}>
-        <TouchableOpacity style={styles.statItem} onPress={() => router.push('/(tabs)/bookings')}>
-          <MaterialCommunityIcons name="calendar-check" size={22} color="#FF385C" />
-          <Text style={styles.statLabel}>Trips</Text>
-        </TouchableOpacity>
-        <View style={styles.statDivider} />
         <TouchableOpacity style={styles.statItem} onPress={() => router.push('/(tabs)/favorites')}>
           <MaterialCommunityIcons name="heart" size={22} color="#FF385C" />
           <Text style={styles.statLabel}>Saved</Text>
@@ -117,13 +112,6 @@ export default function ProfileScreen() {
       <View style={styles.section}>
         <Text style={styles.sectionLabel}>Activity</Text>
         <View style={styles.menuCard}>
-          <MenuRow
-            icon="calendar-check-outline"
-            label="My Bookings"
-            sublabel="View all your trips"
-            onPress={() => router.push('/(tabs)/bookings')}
-          />
-          <View style={styles.rowDivider} />
           <MenuRow
             icon="heart-outline"
             label="Saved Rooms"
