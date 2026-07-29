@@ -3,6 +3,7 @@ import { useFocusEffect } from 'expo-router';
 import {
   View, FlatList, StyleSheet, ActivityIndicator,
   RefreshControl, TouchableOpacity, Image, Modal, Pressable,
+  Platform, useWindowDimensions,
 } from 'react-native';
 import { Text } from 'react-native-paper';
 import { useRouter } from 'expo-router';
@@ -13,6 +14,15 @@ import { useAuth } from '@/lib/auth';
 
 const PLACEHOLDER = 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=400&q=80';
 
+function useGridColumns() {
+  const { width } = useWindowDimensions();
+  if (Platform.OS !== 'web') return 2;
+  if (width >= 1200) return 4;
+  if (width >= 900) return 3;
+  if (width >= 600) return 2;
+  return 1;
+}
+
 function MyRoomCard({
   room, onEdit, onDelete,
 }: { room: Room; onEdit: () => void; onDelete: () => void }) {
@@ -20,33 +30,42 @@ function MyRoomCard({
   const area = room.address?.area ?? '';
   const city = room.address?.city ?? '';
   const location = [area, city].filter(Boolean).join(', ');
+  const furnished: Record<string, string> = {
+    FURNISHED: 'Furnished', SEMI_FURNISHED: 'Semi-furnished', UNFURNISHED: 'Unfurnished',
+  };
 
   return (
     <View style={styles.card}>
-      <Image source={{ uri: imageUrl }} style={styles.cardImage} resizeMode="cover" />
-      <View style={styles.cardBody}>
-        <View style={styles.cardHeader}>
-          <View style={styles.typeTag}>
-            <Text style={styles.typeTagText}>{room.type}</Text>
-          </View>
-          <Text style={styles.price}>₹{room.rent.toLocaleString()}<Text style={styles.priceSub}>/mo</Text></Text>
+      {/* Square photo with overlaid action buttons */}
+      <View style={styles.imageWrap}>
+        <Image source={{ uri: imageUrl }} style={styles.image} resizeMode="cover" />
+        {/* Type pill */}
+        <View style={styles.typePill}>
+          <Text style={styles.typePillText}>{room.type}</Text>
         </View>
-        {location ? (
-          <View style={styles.locationRow}>
-            <MaterialCommunityIcons name="map-marker-outline" size={13} color="#FF385C" />
-            <Text style={styles.location}>{location}</Text>
-          </View>
+        {/* Action buttons top-right */}
+        <View style={styles.actions}>
+          <TouchableOpacity style={styles.actionBtn} onPress={onEdit} activeOpacity={0.85}>
+            <MaterialCommunityIcons name="pencil-outline" size={15} color="#222222" />
+          </TouchableOpacity>
+          <TouchableOpacity style={[styles.actionBtn, styles.actionBtnDelete]} onPress={onDelete} activeOpacity={0.85}>
+            <MaterialCommunityIcons name="delete-outline" size={15} color="#FF385C" />
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      {/* Info — same as RoomCard */}
+      <View style={styles.info}>
+        <Text style={styles.location} numberOfLines={1}>
+          {location || 'Location TBD'}
+        </Text>
+        {furnished[room.furnished ?? ''] ? (
+          <Text style={styles.meta} numberOfLines={1}>{furnished[room.furnished ?? '']}</Text>
         ) : null}
-        <View style={styles.cardActions}>
-          <TouchableOpacity style={styles.editBtn} onPress={onEdit} activeOpacity={0.8}>
-            <MaterialCommunityIcons name="pencil-outline" size={16} color="#222222" />
-            <Text style={styles.editBtnText}>Edit</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.deleteBtn} onPress={onDelete} activeOpacity={0.8}>
-            <MaterialCommunityIcons name="delete-outline" size={16} color="#FF385C" />
-            <Text style={styles.deleteBtnText}>Delete</Text>
-          </TouchableOpacity>
-        </View>
+        <Text style={styles.price}>
+          <Text style={styles.priceNum}>₹{room.rent.toLocaleString()}</Text>
+          <Text style={styles.priceSub}> / month</Text>
+        </Text>
       </View>
     </View>
   );
@@ -55,6 +74,7 @@ function MyRoomCard({
 export default function MyRoomsScreen() {
   const { token } = useAuth();
   const router = useRouter();
+  const numColumns = useGridColumns();
   const [rooms, setRooms] = useState<Room[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -136,13 +156,17 @@ export default function MyRoomsScreen() {
     <View style={styles.container}>
       <FlatList
         data={rooms}
+        key={numColumns}
         keyExtractor={(item) => String(item.id)}
+        numColumns={numColumns}
         renderItem={({ item }) => (
-          <MyRoomCard
-            room={item}
-            onEdit={() => router.push({ pathname: '/room/edit', params: { id: item.id } })}
-            onDelete={() => handleDelete(item)}
-          />
+          <View style={[styles.cardWrap, { width: `${100 / numColumns}%` as any }]}>
+            <MyRoomCard
+              room={item}
+              onEdit={() => router.push({ pathname: '/room/edit', params: { id: item.id } })}
+              onDelete={() => handleDelete(item)}
+            />
+          </View>
         )}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#FF385C" />
@@ -224,72 +248,54 @@ const styles = StyleSheet.create({
   },
   headerTitle: { fontSize: 26, fontWeight: '800', color: '#222222', letterSpacing: -0.3 },
   headerSubtitle: { fontSize: 14, color: '#717171', marginTop: 3 },
-  list: { paddingHorizontal: 16, paddingBottom: 100 },
+  list: { paddingHorizontal: 8, paddingBottom: 100 },
   emptyContainer: { flex: 1, backgroundColor: '#F7F7F7' },
-  card: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    marginTop: 14,
+  cardWrap: { paddingHorizontal: 8 },
+  card: { flex: 1 },
+  imageWrap: {
+    position: 'relative',
+    borderRadius: 12,
     overflow: 'hidden',
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOpacity: 0.06,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 3 },
+    backgroundColor: '#E8E8E8',
   },
-  cardImage: { width: '100%', height: 160 },
-  cardBody: { padding: 14 },
-  cardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 6,
+  image: {
+    width: '100%',
+    aspectRatio: 1,
   },
-  typeTag: {
-    backgroundColor: '#222222',
+  typePill: {
+    position: 'absolute',
+    bottom: 10,
+    left: 10,
+    backgroundColor: 'rgba(255,255,255,0.93)',
     borderRadius: 20,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
+    paddingHorizontal: 9,
+    paddingVertical: 3,
   },
-  typeTagText: { color: '#FFFFFF', fontSize: 11, fontWeight: '700' },
-  price: { fontSize: 18, fontWeight: '800', color: '#222222' },
-  priceSub: { fontSize: 12, fontWeight: '400', color: '#717171' },
-  locationRow: {
+  typePillText: { fontSize: 11, fontWeight: '700', color: '#222' },
+  actions: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    marginBottom: 12,
+    gap: 6,
   },
-  location: { fontSize: 13, color: '#717171' },
-  cardActions: {
-    flexDirection: 'row',
-    gap: 10,
-  },
-  editBtn: {
-    flex: 1,
-    flexDirection: 'row',
+  actionBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255,255,255,0.93)',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
-    borderWidth: 1.5,
-    borderColor: '#DDDDDD',
-    borderRadius: 12,
-    paddingVertical: 10,
   },
-  editBtnText: { fontSize: 13, fontWeight: '700', color: '#222222' },
-  deleteBtn: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    borderWidth: 1.5,
-    borderColor: '#FFD0D7',
-    borderRadius: 12,
-    paddingVertical: 10,
-    backgroundColor: '#FFF0F2',
+  actionBtnDelete: {
+    backgroundColor: 'rgba(255,255,255,0.93)',
   },
-  deleteBtnText: { fontSize: 13, fontWeight: '700', color: '#FF385C' },
+  info: { paddingTop: 8, paddingBottom: 16 },
+  location: { fontSize: 13, fontWeight: '600', color: '#222222', lineHeight: 18 },
+  meta: { fontSize: 12, color: '#717171', lineHeight: 17, marginTop: 1 },
+  price: { marginTop: 2, fontSize: 13 },
+  priceNum: { fontWeight: '700', color: '#222222' },
+  priceSub: { fontWeight: '400', color: '#717171' },
   fab: {
     position: 'absolute',
     bottom: 24,
