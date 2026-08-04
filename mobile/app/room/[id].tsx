@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import {
   View, ScrollView, StyleSheet, Image,
   TouchableOpacity, Linking, ActivityIndicator,
-  useWindowDimensions, FlatList, Platform,
+  useWindowDimensions, FlatList, Platform, Share,
 } from 'react-native';
 import { Text } from 'react-native-paper';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -61,6 +61,19 @@ export default function RoomDetailScreen() {
   const showSnack = (msg: string) => {
     setSnackMsg(msg);
     setTimeout(() => setSnackMsg(''), 3000);
+  };
+
+  const shareRoom = async () => {
+    if (!room) return;
+    const addr = room.address;
+    const location = [addr?.area, addr?.city].filter(Boolean).join(', ');
+    const deepLink = `roomsafar://room/${room.id}`;
+    const message = `🏠 ${room.type} in ${location}\n₹${room.rent.toLocaleString()}/month${room.deposit ? ` · ₹${room.deposit.toLocaleString()} deposit` : ''}\n\n${room.description ? room.description.slice(0, 120) + (room.description.length > 120 ? '…' : '') + '\n\n' : ''}Check it out on RoomSafar: ${deepLink}`;
+    try {
+      await Share.share({ message, title: `${room.type} in ${location} – RoomSafar` });
+    } catch {
+      // user cancelled or share not supported
+    }
   };
 
   const toggleFav = async () => {
@@ -150,13 +163,18 @@ export default function RoomDetailScreen() {
               <TouchableOpacity style={styles.galleryBack} onPress={() => router.back()}>
                 <MaterialCommunityIcons name="arrow-left" size={22} color="#222222" />
               </TouchableOpacity>
-              <TouchableOpacity style={styles.galleryFav} onPress={toggleFav}>
-                <MaterialCommunityIcons
-                  name={isFav ? 'heart' : 'heart-outline'}
-                  size={22}
-                  color={isFav ? '#FF385C' : '#222222'}
-                />
-              </TouchableOpacity>
+              <View style={styles.galleryActions}>
+                <TouchableOpacity style={styles.galleryBtn} onPress={shareRoom}>
+                  <MaterialCommunityIcons name="share-variant-outline" size={22} color="#222222" />
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.galleryBtn} onPress={toggleFav}>
+                  <MaterialCommunityIcons
+                    name={isFav ? 'heart' : 'heart-outline'}
+                    size={22}
+                    color={isFav ? '#FF385C' : '#222222'}
+                  />
+                </TouchableOpacity>
+              </View>
             </View>
 
             {/* Dot indicator */}
@@ -382,7 +400,11 @@ const styles = StyleSheet.create({
     shadowRadius: 6,
     shadowOffset: { width: 0, height: 2 },
   },
-  galleryFav: {
+  galleryActions: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  galleryBtn: {
     width: 40,
     height: 40,
     borderRadius: 20,
