@@ -44,6 +44,16 @@ done
 if [ -z "$TUNNEL_URL" ]; then
   echo "⚠️  Cloudflare tunnel did not start in time — native Expo Go will not work"
   echo "   Web preview at port 5000 still works."
+  rm -f qr-b64.txt
+else
+  # Generate QR code as base64 data URL for /phone-preview page
+  node -e "
+    const QRCode = require('qrcode');
+    const url = 'exp://' + '$TUNNEL_URL'.replace('https://', '');
+    QRCode.toDataURL(url, { width: 300 }, (err, data) => {
+      if (!err) { process.stdout.write(data); }
+    });
+  " > qr-b64.txt 2>/dev/null || rm -f qr-b64.txt
 fi
 
 # ── Step 3: Start Metro with EXPO_PACKAGER_PROXY_URL set to tunnel URL ─────────
