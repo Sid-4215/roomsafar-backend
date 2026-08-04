@@ -156,7 +156,7 @@ export default function HomeScreen() {
             setSearchQuery(text);
             if (!text) doSearch('', activeCategory);
           }}
-          onSubmitEditing={() => doSearch(searchQuery, activeCategory)}
+          onSubmitEditing={() => goSearch(searchQuery, activeCategory || undefined)}
           returnKeyType="search"
         />
         {searchQuery.length > 0 && (
@@ -164,9 +164,9 @@ export default function HomeScreen() {
             <MaterialCommunityIcons name="close-circle" size={18} color="#AAAAAA" />
           </TouchableOpacity>
         )}
-        <View style={styles.filterBtn}>
+        <TouchableOpacity style={styles.filterBtn} onPress={() => goSearch(searchQuery, activeCategory || undefined)}>
           <MaterialCommunityIcons name="tune-variant" size={16} color="#FF385C" />
-        </View>
+        </TouchableOpacity>
       </View>
 
       {/* Category pills */}
