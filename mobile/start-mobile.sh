@@ -22,12 +22,18 @@ if [ ! -d "node_modules" ] || [ "$INSTALLED_EXPO" = "none" ] || [[ "$INSTALLED_E
   npm install --legacy-peer-deps
 fi
 
-echo "🚀 Starting Expo Metro on port 5001 (web mode)..."
-EXPO_NO_TELEMETRY=1 BROWSER=none npx expo start --port 5001 --web &
+echo "🚀 Starting Expo Metro on port 5001..."
+EXPO_NO_TELEMETRY=1 BROWSER=none npx expo start --port 5001 &
 EXPO_PID=$!
 
-# Give Metro time to start before proxy comes up
-sleep 6
+# Give Metro time to start before tunnel + proxy come up
+sleep 8
+
+echo "🌐 Starting localtunnel for Expo Go..."
+node start-tunnel.js &
+TUNNEL_PID=$!
+
+sleep 4
 
 echo "🔀 Starting reverse proxy on port 5000 (public web entry point)..."
 PROXY_PORT=5000 EXPO_PORT=5001 BACKEND_PORT=8080 node proxy-server.js &
@@ -36,7 +42,7 @@ PROXY_PID=$!
 echo "✅ App available at port 5000  (proxy → Expo:5001 + Backend:8080)"
 
 cleanup() {
-  kill $EXPO_PID $PROXY_PID 2>/dev/null
+  kill $EXPO_PID $TUNNEL_PID $PROXY_PID 2>/dev/null
   exit 0
 }
 trap cleanup SIGTERM SIGINT
