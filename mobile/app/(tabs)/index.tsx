@@ -44,6 +44,7 @@ export default function HomeScreen() {
   const [page, setPage] = useState(0);
   const [hasMore, setHasMore] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [isSearching, setIsSearching] = useState(false);
 
   const loadData = useCallback(async () => {
     try {
@@ -67,10 +68,36 @@ export default function HomeScreen() {
 
   useFocusEffect(useCallback(() => { loadData(); }, [loadData]));
 
-  const onRefresh = () => { setRefreshing(true); loadData(); };
+  const onRefresh = () => {
+    setSearchQuery('');
+    setActiveCategory('');
+    setIsSearching(false);
+    setRefreshing(true);
+    loadData();
+  };
+
+  const doSearch = useCallback(async (query: string, type: string) => {
+    if (!query && !type) {
+      setIsSearching(false);
+      loadData();
+      return;
+    }
+    setIsSearching(true);
+    try {
+      const params: Record<string, string | number> = { page: 0, size: 50 };
+      if (query) params.area = query;
+      if (type) params.type = type;
+      const data = await api.searchRooms(params as any);
+      setRooms(data.content ?? []);
+      setHasMore(false);
+      setPage(0);
+    } catch {
+      // ignore
+    }
+  }, [loadData]);
 
   const loadMore = async () => {
-    if (loadingMore || !hasMore) return;
+    if (loadingMore || !hasMore || isSearching) return;
     setLoadingMore(true);
     try {
       const next = page + 1;
@@ -118,25 +145,29 @@ export default function HomeScreen() {
       </View>
 
       {/* Search bar */}
-      <TouchableOpacity
-        style={styles.searchBar}
-        onPress={() => goSearch(searchQuery)}
-        activeOpacity={0.8}
-      >
+      <View style={styles.searchBar}>
         <MaterialCommunityIcons name="magnify" size={20} color="#717171" />
         <TextInput
           style={styles.searchInput}
           placeholder="Search by area, city…"
           placeholderTextColor="#AAAAAA"
           value={searchQuery}
-          onChangeText={setSearchQuery}
-          onSubmitEditing={() => goSearch(searchQuery)}
+          onChangeText={(text) => {
+            setSearchQuery(text);
+            if (!text) doSearch('', activeCategory);
+          }}
+          onSubmitEditing={() => doSearch(searchQuery, activeCategory)}
           returnKeyType="search"
         />
+        {searchQuery.length > 0 && (
+          <TouchableOpacity onPress={() => { setSearchQuery(''); doSearch('', activeCategory); }}>
+            <MaterialCommunityIcons name="close-circle" size={18} color="#AAAAAA" />
+          </TouchableOpacity>
+        )}
         <View style={styles.filterBtn}>
           <MaterialCommunityIcons name="tune-variant" size={16} color="#FF385C" />
         </View>
-      </TouchableOpacity>
+      </View>
 
       {/* Category pills */}
       <ScrollView
@@ -153,7 +184,7 @@ export default function HomeScreen() {
             ]}
             onPress={() => {
               setActiveCategory(cat.key);
-              if (cat.key) goSearch(undefined, cat.key);
+              doSearch(searchQuery, cat.key);
             }}
           >
             <Text
