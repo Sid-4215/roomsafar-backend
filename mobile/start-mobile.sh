@@ -29,17 +29,17 @@ EXPO_PID=$!
 # Give Metro time to start before tunnel + proxy come up
 sleep 8
 
-echo "🌐 Starting localtunnel for Expo Go..."
-node start-tunnel.js &
+echo "🌐 Starting Cloudflare tunnel for Expo Go (no interstitial)..."
+node start-tunnel-cloudflare.js &
 TUNNEL_PID=$!
 
 sleep 4
 
-echo "🔀 Starting reverse proxy on port 5000 (public web entry point)..."
+echo "🔀 Starting reverse proxy on port 5000 (web browser entry point)..."
 PROXY_PORT=5000 EXPO_PORT=5001 BACKEND_PORT=8080 node proxy-server.js &
 PROXY_PID=$!
 
-echo "✅ App available at port 5000  (proxy → Expo:5001 + Backend:8080)"
+echo "✅ Web preview on port 5000  |  Expo Go URL will appear above once tunnel is ready"
 
 cleanup() {
   kill $EXPO_PID $TUNNEL_PID $PROXY_PID 2>/dev/null
