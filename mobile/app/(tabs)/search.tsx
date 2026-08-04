@@ -28,9 +28,9 @@ const FURNISHED_OPTS = [
 ];
 
 const GENDER_OPTS = [
-  { label: '👨 Boys', value: 'MALE' },
-  { label: '👩 Girls', value: 'FEMALE' },
-  { label: '🤝 Any', value: 'ANY' },
+  { label: '👨 Boys', value: 'BOYS' },
+  { label: '👩 Girls', value: 'GIRLS' },
+  { label: '🤝 Any', value: 'ANYONE' },
 ];
 
 function FilterPill({
