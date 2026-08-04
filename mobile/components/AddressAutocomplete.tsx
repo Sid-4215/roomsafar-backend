@@ -298,12 +298,6 @@ export default function AddressAutocomplete({
         </View>
       )}
 
-      {/* GPS hint label */}
-      <Text style={styles.hint}>
-        Type to search, or tap{' '}
-        <Text style={styles.hintBold}>📍</Text>
-        {' '}to use your current location
-      </Text>
     </View>
   );
 }
