@@ -4,7 +4,7 @@ import {
   Platform, ScrollView, TouchableOpacity,
 } from 'react-native';
 import { Text, TextInput } from 'react-native-paper';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useAuth } from '@/lib/auth';
 
 export default function RegisterScreen() {
@@ -16,6 +16,7 @@ export default function RegisterScreen() {
   const [error, setError] = useState('');
   const { register } = useAuth();
   const router = useRouter();
+  const { returnTo } = useLocalSearchParams<{ returnTo?: string }>();
 
   const handleRegister = async () => {
     if (!name.trim() || !email.trim() || !password.trim()) {
@@ -30,6 +31,7 @@ export default function RegisterScreen() {
     setLoading(true);
     try {
       await register(name.trim(), email.trim(), password);
+      router.replace((returnTo as any) ?? '/(tabs)');
     } catch (e: any) {
       setError(e.message || 'Registration failed. Please try again.');
     } finally {

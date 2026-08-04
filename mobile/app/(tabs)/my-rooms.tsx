@@ -126,6 +126,7 @@ export default function MyRoomsScreen() {
         icon="home-edit-outline"
         title="Sign in to manage listings"
         subtitle="List your room and reach thousands of renters."
+        returnTo="/(tabs)/my-rooms"
       />
     );
   }

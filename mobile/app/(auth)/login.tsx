@@ -4,7 +4,7 @@ import {
   Platform, ScrollView, TouchableOpacity, Image,
 } from 'react-native';
 import { Text, TextInput } from 'react-native-paper';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useAuth } from '@/lib/auth';
 
 export default function LoginScreen() {
@@ -15,6 +15,7 @@ export default function LoginScreen() {
   const [error, setError] = useState('');
   const { login } = useAuth();
   const router = useRouter();
+  const { returnTo } = useLocalSearchParams<{ returnTo?: string }>();
 
   const handleLogin = async () => {
     if (!email.trim() || !password.trim()) {
@@ -25,6 +26,7 @@ export default function LoginScreen() {
     setLoading(true);
     try {
       await login(email.trim(), password);
+      router.replace((returnTo as any) ?? '/(tabs)');
     } catch (e: any) {
       setError(e.message || 'Sign in failed. Please try again.');
     } finally {

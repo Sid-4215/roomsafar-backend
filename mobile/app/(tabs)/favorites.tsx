@@ -58,6 +58,7 @@ export default function FavoritesScreen() {
         icon="heart-outline"
         title="Sign in to see saved rooms"
         subtitle="Rooms you save will appear here for easy access."
+        returnTo="/(tabs)/favorites"
       />
     );
   }

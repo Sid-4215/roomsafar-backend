@@ -43,6 +43,7 @@ export default function ProfileScreen() {
         icon="account-circle-outline"
         title="Sign in to your account"
         subtitle="Manage bookings, save rooms, and list your own property."
+        returnTo="/(tabs)/profile"
       />
     );
   }

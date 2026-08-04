@@ -8,10 +8,12 @@ interface AuthWallProps {
   icon?: React.ComponentProps<typeof MaterialCommunityIcons>['name'];
   title: string;
   subtitle: string;
+  returnTo?: string;
 }
 
-export default function AuthWall({ icon = 'lock-outline', title, subtitle }: AuthWallProps) {
+export default function AuthWall({ icon = 'lock-outline', title, subtitle, returnTo }: AuthWallProps) {
   const router = useRouter();
+  const params = returnTo ? { returnTo } : {};
   return (
     <View style={styles.container}>
       <View style={styles.iconWrap}>
@@ -19,10 +21,10 @@ export default function AuthWall({ icon = 'lock-outline', title, subtitle }: Aut
       </View>
       <Text style={styles.title}>{title}</Text>
       <Text style={styles.subtitle}>{subtitle}</Text>
-      <TouchableOpacity style={styles.signInBtn} onPress={() => router.push('/(auth)/login')} activeOpacity={0.85}>
+      <TouchableOpacity style={styles.signInBtn} onPress={() => router.push({ pathname: '/(auth)/login', params })} activeOpacity={0.85}>
         <Text style={styles.signInText}>Sign in</Text>
       </TouchableOpacity>
-      <TouchableOpacity style={styles.registerBtn} onPress={() => router.push('/(auth)/register')} activeOpacity={0.85}>
+      <TouchableOpacity style={styles.registerBtn} onPress={() => router.push({ pathname: '/(auth)/register', params })} activeOpacity={0.85}>
         <Text style={styles.registerText}>Create an account</Text>
       </TouchableOpacity>
     </View>
