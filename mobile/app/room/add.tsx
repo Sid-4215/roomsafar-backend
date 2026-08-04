@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View, ScrollView, StyleSheet, KeyboardAvoidingView, Platform,
   TouchableOpacity, Image, Alert, ActivityIndicator,
@@ -6,6 +6,7 @@ import {
 import { Text, TextInput, Button, Chip, HelperText } from 'react-native-paper';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import { useAuth } from '@/lib/auth';
 import { api } from '@/lib/api';
 import { pickImage, uploadImageAsset } from '@/lib/uploadImage';
 import type { RoomRequest } from '@/lib/types';
@@ -144,6 +145,7 @@ function PhotoGrid({
 /* ─── main screen ────────────────────────────────────────────────────────── */
 export default function AddRoomScreen() {
   const router = useRouter();
+  const { token } = useAuth();
 
   const [submitting, setSubmitting] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -193,6 +195,11 @@ export default function AddRoomScreen() {
 
   // amenities
   const [amenities, setAmenities] = useState<string[]>([]);
+
+  // Redirect guests to login — hooks must all be called before this
+  useEffect(() => {
+    if (!token) router.replace('/(auth)/login');
+  }, [token]);
 
   const toggleAmenity = (a: string) =>
     setAmenities((prev) =>

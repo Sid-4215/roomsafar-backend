@@ -11,6 +11,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { api } from '@/lib/api';
 import type { Room } from '@/lib/types';
 import { useAuth } from '@/lib/auth';
+import AuthWall from '@/components/AuthWall';
 
 const PLACEHOLDER = 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=400&q=80';
 
@@ -121,14 +122,11 @@ export default function MyRoomsScreen() {
 
   if (!token) {
     return (
-      <View style={styles.guestContainer}>
-        <Text style={styles.guestEmoji}>🏡</Text>
-        <Text style={styles.guestTitle}>Sign in to manage listings</Text>
-        <Text style={styles.guestSubtitle}>List your room and reach thousands of renters.</Text>
-        <TouchableOpacity style={styles.signInBtn} onPress={() => router.replace('/(auth)/login')}>
-          <Text style={styles.signInBtnText}>Sign in</Text>
-        </TouchableOpacity>
-      </View>
+      <AuthWall
+        icon="home-edit-outline"
+        title="Sign in to manage listings"
+        subtitle="List your room and reach thousands of renters."
+      />
     );
   }
 

@@ -10,6 +10,7 @@ import { api } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import type { Room } from '@/lib/types';
 import RoomCard from '@/components/RoomCard';
+import AuthWall from '@/components/AuthWall';
 
 function useGridColumns() {
   const { width } = useWindowDimensions();
@@ -53,16 +54,11 @@ export default function FavoritesScreen() {
 
   if (!token) {
     return (
-      <View style={styles.guestContainer}>
-        <Text style={styles.guestEmoji}>❤️</Text>
-        <Text style={styles.guestTitle}>Sign in to see saved rooms</Text>
-        <Text style={styles.guestSubtitle}>
-          Rooms you save will appear here for easy access.
-        </Text>
-        <TouchableOpacity style={styles.signInBtn} onPress={() => router.replace('/(auth)/login')}>
-          <Text style={styles.signInBtnText}>Sign in</Text>
-        </TouchableOpacity>
-      </View>
+      <AuthWall
+        icon="heart-outline"
+        title="Sign in to see saved rooms"
+        subtitle="Rooms you save will appear here for easy access."
+      />
     );
   }
 

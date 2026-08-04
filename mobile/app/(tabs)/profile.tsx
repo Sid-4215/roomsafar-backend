@@ -6,6 +6,7 @@ import { Text } from 'react-native-paper';
 import { useRouter } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useAuth } from '@/lib/auth';
+import AuthWall from '@/components/AuthWall';
 
 type IconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
 
@@ -38,29 +39,11 @@ export default function ProfileScreen() {
 
   if (!token || !user) {
     return (
-      <View style={styles.guestContainer}>
-        <View style={styles.guestHero}>
-          <Text style={styles.guestEmoji}>👤</Text>
-          <Text style={styles.guestTitle}>Sign in to your account</Text>
-          <Text style={styles.guestSubtitle}>
-            Manage bookings, save rooms, and list your own property.
-          </Text>
-        </View>
-        <TouchableOpacity
-          style={styles.signInBtn}
-          onPress={() => router.replace('/(auth)/login')}
-          activeOpacity={0.85}
-        >
-          <Text style={styles.signInBtnText}>Sign in</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.createBtn}
-          onPress={() => router.replace('/(auth)/register')}
-          activeOpacity={0.85}
-        >
-          <Text style={styles.createBtnText}>Create account</Text>
-        </TouchableOpacity>
-      </View>
+      <AuthWall
+        icon="account-circle-outline"
+        title="Sign in to your account"
+        subtitle="Manage bookings, save rooms, and list your own property."
+      />
     );
   }
 

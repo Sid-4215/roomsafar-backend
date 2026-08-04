@@ -26,9 +26,8 @@ function RootLayoutNav() {
   useEffect(() => {
     if (isLoading) return;
     const inAuth = segments[0] === '(auth)';
-    if (!token && !inAuth) {
-      router.replace('/(auth)/login');
-    } else if (token && inAuth) {
+    // Only redirect away from auth screens when already logged in
+    if (token && inAuth) {
       router.replace('/(tabs)');
     }
   }, [token, isLoading, segments]);
