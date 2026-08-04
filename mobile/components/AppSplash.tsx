@@ -1,5 +1,8 @@
 import React, { useEffect, useRef } from 'react';
-import { View, Animated, StyleSheet, Easing } from 'react-native';
+import { View, Animated, StyleSheet, Easing, Platform } from 'react-native';
+
+// useNativeDriver is not supported on web
+const nativeDriven = Platform.OS !== 'web';
 import { Text } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
@@ -34,12 +37,12 @@ export default function AppSplash({ ready, onDone }: AppSplashProps) {
           toValue: 1,
           tension: 60,
           friction: 6,
-          useNativeDriver: true,
+          useNativeDriver: nativeDriven,
         }),
         Animated.timing(logoOpacity, {
           toValue: 1,
           duration: 350,
-          useNativeDriver: true,
+          useNativeDriver: nativeDriven,
         }),
       ]),
       // Brand name fades up
@@ -47,14 +50,14 @@ export default function AppSplash({ ready, onDone }: AppSplashProps) {
         toValue: 1,
         duration: 300,
         easing: Easing.out(Easing.quad),
-        useNativeDriver: true,
+        useNativeDriver: nativeDriven,
       }),
       // Tagline fades up
       Animated.timing(tagOpacity, {
         toValue: 1,
         duration: 280,
         easing: Easing.out(Easing.quad),
-        useNativeDriver: true,
+        useNativeDriver: nativeDriven,
       }),
     ]).start();
 
@@ -67,13 +70,13 @@ export default function AppSplash({ ready, onDone }: AppSplashProps) {
             toValue: -8,
             duration: 320,
             easing: Easing.out(Easing.quad),
-            useNativeDriver: true,
+            useNativeDriver: nativeDriven,
           }),
           Animated.timing(anim, {
             toValue: 0,
             duration: 320,
             easing: Easing.in(Easing.quad),
-            useNativeDriver: true,
+            useNativeDriver: nativeDriven,
           }),
           Animated.delay(400),
         ])
@@ -93,7 +96,7 @@ export default function AppSplash({ ready, onDone }: AppSplashProps) {
       toValue: 0,
       duration: 400,
       easing: Easing.in(Easing.quad),
-      useNativeDriver: true,
+      useNativeDriver: nativeDriven,
     }).start(() => onDone());
   }, [ready]);
 
