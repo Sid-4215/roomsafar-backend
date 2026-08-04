@@ -1,8 +1,9 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { PaperProvider, MD3LightTheme } from 'react-native-paper';
 import { StatusBar } from 'expo-status-bar';
 import { AuthProvider, useAuth } from '@/lib/auth';
+import AppSplash from '@/components/AppSplash';
 
 const theme = {
   ...MD3LightTheme,
@@ -22,6 +23,7 @@ function RootLayoutNav() {
   const { token, isLoading } = useAuth();
   const segments = useSegments();
   const router = useRouter();
+  const [splashDone, setSplashDone] = useState(false);
 
   useEffect(() => {
     if (isLoading) return;
@@ -66,6 +68,12 @@ function RootLayoutNav() {
           }}
         />
       </Stack>
+      {!splashDone && (
+        <AppSplash
+          ready={!isLoading}
+          onDone={() => setSplashDone(true)}
+        />
+      )}
     </>
   );
 }
