@@ -9,6 +9,7 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { api } from '@/lib/api';
 import { pickImage, uploadImageAsset } from '@/lib/uploadImage';
 import type { RoomRequest, Room } from '@/lib/types';
+import LeafletMap from '@/components/LeafletMap';
 
 /* ─── constants ──────────────────────────────────────────────────────────── */
 const PRIMARY = '#FF385C';
@@ -158,6 +159,8 @@ export default function EditRoomScreen() {
   const [amenities, setAmenities] = useState<string[]>([]);
   const [brokerageRequired, setBrokerageRequired] = useState(false);
   const [brokerageAmount, setBrokerageAmount] = useState('');
+  const [latitude, setLatitude] = useState<number | undefined>(undefined);
+  const [longitude, setLongitude] = useState<number | undefined>(undefined);
 
   /* load existing room */
   useEffect(() => {
@@ -181,6 +184,8 @@ export default function EditRoomScreen() {
         setAmenities(room.amenities ?? []);
         setBrokerageRequired(room.brokerageRequired ?? false);
         setBrokerageAmount(room.brokerageAmount ? String(room.brokerageAmount) : '');
+        setLatitude(room.address?.latitude ?? undefined);
+        setLongitude(room.address?.longitude ?? undefined);
         // Pre-populate existing photo URLs
         const existingPhotos = (room.images ?? [])
           .sort((a: any, b: any) => (a.sequence ?? 0) - (b.sequence ?? 0))
@@ -246,7 +251,7 @@ export default function EditRoomScreen() {
         brokerageRequired,
         brokerageAmount: brokerageRequired && brokerageAmount ? Number(brokerageAmount) : undefined,
         amenities,
-        address: { line1, area, city, state, pincode },
+        address: { line1, area, city, state, pincode, latitude, longitude },
         images: photos.map((url, i) => ({
           url,
           label: i === 0 ? 'EXTERIOR' : 'OTHER',
@@ -416,6 +421,24 @@ export default function EditRoomScreen() {
           />
         </View>
 
+        {/* ── Pin on map ── */}
+        <SectionLabel text="Pin Location on Map (optional)" />
+        <Text style={styles.mapHint}>
+          Search your address or tap to move the pin to the exact location.
+        </Text>
+        <LeafletMap
+          mode="picker"
+          latitude={latitude}
+          longitude={longitude}
+          height={260}
+          onLocationPick={(lat, lng) => { setLatitude(lat); setLongitude(lng); }}
+        />
+        {latitude != null && longitude != null ? (
+          <Text style={styles.coordsText}>
+            📍 Pinned: {latitude.toFixed(5)}, {longitude.toFixed(5)}
+          </Text>
+        ) : null}
+
         {/* ── Amenities ── */}
         <SectionLabel text="Amenities" />
         <View style={styles.chipRow}>
@@ -557,6 +580,8 @@ const styles = StyleSheet.create({
   brokerageBtnText: { fontSize: 13, fontWeight: '600', color: '#444' },
   brokerageBtnTextActive: { color: '#fff' },
   errorText: { fontSize: 13, marginBottom: 4 },
+  mapHint: { fontSize: 12, color: '#717171', marginBottom: 10, lineHeight: 18 },
+  coordsText: { fontSize: 12, color: '#00A699', marginTop: 6, marginBottom: 4, fontWeight: '600' },
   submitBtn: { marginTop: 20, borderRadius: 12 },
   submitContent: { paddingVertical: 8 },
   submitLabel: { fontSize: 16, fontWeight: '700', letterSpacing: 0.3 },

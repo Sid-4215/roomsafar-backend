@@ -22,8 +22,8 @@ if [ ! -d "node_modules" ] || [ "$INSTALLED_EXPO" = "none" ] || [[ "$INSTALLED_E
   npm install --legacy-peer-deps
 fi
 
-echo "🚀 Starting Expo Metro on port 5001 (tunnel + web mode)..."
-EXPO_NO_TELEMETRY=1 BROWSER=none npx expo start --port 5001 --tunnel &
+echo "🚀 Starting Expo Metro on port 5001 (web mode)..."
+EXPO_NO_TELEMETRY=1 BROWSER=none npx expo start --port 5001 --web &
 EXPO_PID=$!
 
 # Give Metro time to start before proxy comes up

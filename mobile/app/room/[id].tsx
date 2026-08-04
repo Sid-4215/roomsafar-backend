@@ -10,6 +10,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { api } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import type { Room } from '@/lib/types';
+import LeafletMap from '@/components/LeafletMap';
 
 const PLACEHOLDER = 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=800&q=80';
 const MAX_CONTENT_W = 860;   // cap for web wide screens
@@ -203,6 +204,21 @@ export default function RoomDetailScreen() {
               <MaterialCommunityIcons name="map-marker-outline" size={16} color="#FF385C" />
               <Text style={styles.locationText}>{addressStr}</Text>
             </View>
+          ) : null}
+
+          {/* Map */}
+          {(addr?.latitude != null && addr?.longitude != null) || addressStr ? (
+            <>
+              <Text style={styles.sectionTitle}>Location</Text>
+              <LeafletMap
+                mode="view"
+                latitude={addr?.latitude}
+                longitude={addr?.longitude}
+                address={(!addr?.latitude && addressStr) ? addressStr : undefined}
+                height={220}
+              />
+              <View style={styles.divider} />
+            </>
           ) : null}
 
           {/* Quick info row */}
