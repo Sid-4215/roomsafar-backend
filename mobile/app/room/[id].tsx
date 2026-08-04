@@ -64,7 +64,10 @@ export default function RoomDetailScreen() {
   };
 
   const toggleFav = async () => {
-    if (!token) { showSnack('Sign in to save rooms'); return; }
+    if (!token) {
+      router.push({ pathname: '/(auth)/login', params: { returnTo: `/room/${id}` } });
+      return;
+    }
     if (!room) return;
     setFavLoading(true);
     try {
