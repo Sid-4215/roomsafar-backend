@@ -1,14 +1,25 @@
 /**
- * LeafletMap — WebView-based OpenStreetMap (free, no API key).
+ * LeafletMap — OpenStreetMap-based map (no API key required).
  *
  * mode="view"   → shows a pin at lat/lng (or auto-geocodes `address` if no coords)
  * mode="picker" → tap/drag to pin a location; search box uses Nominatim geocoding
  *                 calls onLocationPick(lat, lng) whenever the pin changes
+ *
+ * Platform behaviour:
+ *  - Native (iOS/Android): uses react-native-webview WebView
+ *  - Web: uses a plain <iframe srcdoc> because react-native-webview has no web build
  */
 import React, { useRef } from 'react';
 import { View, StyleSheet, ActivityIndicator, Platform } from 'react-native';
 import { Text } from 'react-native-paper';
-import { WebView, WebViewMessageEvent } from 'react-native-webview';
+
+// WebView is only imported on native; on web we use a plain iframe element.
+let WebView: any = null;
+let WebViewMessageEvent: any = null;
+if (Platform.OS !== 'web') {
+  const mod = require('react-native-webview');
+  WebView = mod.WebView;
+}
 
 interface LeafletMapProps {
   mode: 'view' | 'picker';
@@ -165,8 +176,13 @@ function placeMarker(lat, lng) {
 
 function sendCoords(lat, lng) {
   var msg = JSON.stringify({ type: 'location', lat: lat, lng: lng });
+  // native WebView bridge
   if (window.ReactNativeWebView) {
     window.ReactNativeWebView.postMessage(msg);
+  }
+  // web iframe bridge — post to parent window
+  if (window.parent && window.parent !== window) {
+    window.parent.postMessage(msg, '*');
   }
 }
 
@@ -203,6 +219,56 @@ document.getElementById('search-input').addEventListener('keypress', function(e)
 </html>`;
 }
 
+/* ─── Web iframe wrapper ────────────────────────────────────────────────── */
+
+function WebIframe({
+  html,
+  height,
+  onMessage,
+}: {
+  html: string;
+  height: number;
+  onMessage?: (data: string) => void;
+}) {
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+
+  React.useEffect(() => {
+    if (!onMessage) return;
+    const handler = (e: MessageEvent) => {
+      if (typeof e.data === 'string') onMessage(e.data);
+    };
+    window.addEventListener('message', handler);
+    return () => window.removeEventListener('message', handler);
+  }, [onMessage]);
+
+  // Use a blob URL so the iframe can load external resources without srcdoc restrictions
+  const [blobUrl, setBlobUrl] = React.useState<string | null>(null);
+  React.useEffect(() => {
+    const blob = new Blob([html], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    setBlobUrl(url);
+    return () => URL.revokeObjectURL(url);
+  }, [html]);
+
+  if (!blobUrl) return null;
+
+  return (
+    <iframe
+      ref={iframeRef}
+      src={blobUrl}
+      style={{
+        width: '100%',
+        height,
+        border: 'none',
+        borderRadius: 14,
+        display: 'block',
+      }}
+      title="Map"
+      sandbox="allow-scripts allow-same-origin allow-forms"
+    />
+  );
+}
+
 /* ─── component ─────────────────────────────────────────────────────────── */
 
 export default function LeafletMap({
@@ -213,31 +279,41 @@ export default function LeafletMap({
   height = 220,
   onLocationPick,
 }: LeafletMapProps) {
-  const webviewRef = useRef<WebView>(null);
-
   const html =
     mode === 'view'
       ? buildViewHtml(latitude, longitude, address)
       : buildPickerHtml(latitude, longitude);
 
-  const handleMessage = (e: WebViewMessageEvent) => {
+  const handleMessage = (raw: string) => {
     if (mode !== 'picker') return;
     try {
-      const data = JSON.parse(e.nativeEvent.data);
+      const data = JSON.parse(raw);
       if (data.type === 'location' && onLocationPick) {
         onLocationPick(data.lat, data.lng);
       }
     } catch (_) {}
   };
 
-  // On web platform the WebView renders as an <iframe>; it still works fine.
+  // ── Web platform: use a native iframe (react-native-webview has no web build)
+  if (Platform.OS === 'web') {
+    return (
+      <View style={[styles.container, { height }]}>
+        <WebIframe
+          html={html}
+          height={height}
+          onMessage={mode === 'picker' ? handleMessage : undefined}
+        />
+      </View>
+    );
+  }
+
+  // ── Native (iOS / Android): use react-native-webview
   return (
     <View style={[styles.container, { height }]}>
       <WebView
-        ref={webviewRef}
         source={{ html }}
         style={styles.webview}
-        onMessage={handleMessage}
+        onMessage={(e: any) => handleMessage(e.nativeEvent.data)}
         originWhitelist={['*']}
         javaScriptEnabled
         domStorageEnabled
@@ -248,9 +324,7 @@ export default function LeafletMap({
             <Text style={styles.loadingText}>Loading map…</Text>
           </View>
         )}
-        // Needed on Android so the map tiles load
         mixedContentMode="always"
-        // Allow network requests for tiles + Nominatim
         allowsInlineMediaPlayback
       />
     </View>
