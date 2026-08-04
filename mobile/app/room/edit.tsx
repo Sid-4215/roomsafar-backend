@@ -10,6 +10,7 @@ import { api } from '@/lib/api';
 import { pickImage, uploadImageAsset } from '@/lib/uploadImage';
 import type { RoomRequest, Room } from '@/lib/types';
 import LeafletMap from '@/components/LeafletMap';
+import AddressAutocomplete, { ParsedAddress } from '@/components/AddressAutocomplete';
 
 /* ─── constants ──────────────────────────────────────────────────────────── */
 const PRIMARY = '#FF385C';
@@ -147,11 +148,22 @@ export default function EditRoomScreen() {
   const [type, setType] = useState<string>('BHK1');
   const [furnished, setFurnished] = useState<string>('FURNISHED');
   const [gender, setGender] = useState<string>('ANYONE');
+  const [addressQuery, setAddressQuery] = useState('');
   const [line1, setLine1] = useState('');
   const [area, setArea] = useState('');
   const [city, setCity] = useState('');
   const [state, setState] = useState('');
   const [pincode, setPincode] = useState('');
+
+  const handleAddressSelect = (parsed: ParsedAddress) => {
+    if (parsed.line1) setLine1(parsed.line1);
+    if (parsed.area) setArea(parsed.area);
+    if (parsed.city) setCity(parsed.city);
+    if (parsed.state) setState(parsed.state);
+    if (parsed.pincode) setPincode(parsed.pincode);
+    setLatitude(parsed.latitude);
+    setLongitude(parsed.longitude);
+  };
   const [whatsapp, setWhatsapp] = useState('');
   const [phone, setPhone] = useState('');
   const [contactPref, setContactPref] = useState<string>('WHATSAPP');
@@ -370,6 +382,13 @@ export default function EditRoomScreen() {
 
         {/* ── Location ── */}
         <SectionLabel text="Location" />
+        <AddressAutocomplete
+          value={addressQuery}
+          onChangeText={setAddressQuery}
+          onSelect={handleAddressSelect}
+          placeholder="Search area, locality or city…"
+          style={styles.autocompleteWrap}
+        />
         <TextInput
           label="Street / Landmark"
           value={line1}
@@ -535,6 +554,7 @@ const styles = StyleSheet.create({
     marginTop: 20, marginBottom: 10,
   },
 
+  autocompleteWrap: { marginBottom: 12 },
   input: { marginBottom: 10, backgroundColor: '#fff' },
   row2: { flexDirection: 'row', gap: 10 },
 

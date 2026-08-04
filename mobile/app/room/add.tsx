@@ -10,6 +10,7 @@ import { api } from '@/lib/api';
 import { pickImage, uploadImageAsset } from '@/lib/uploadImage';
 import type { RoomRequest } from '@/lib/types';
 import LeafletMap from '@/components/LeafletMap';
+import AddressAutocomplete, { ParsedAddress } from '@/components/AddressAutocomplete';
 
 /* ─── constants ──────────────────────────────────────────────────────────── */
 const PRIMARY = '#FF385C';
@@ -161,6 +162,7 @@ export default function AddRoomScreen() {
   const [gender, setGender] = useState<string>('ANYONE');
 
   // address
+  const [addressQuery, setAddressQuery] = useState('');
   const [line1, setLine1] = useState('');
   const [area, setArea] = useState('');
   const [city, setCity] = useState('');
@@ -168,6 +170,16 @@ export default function AddRoomScreen() {
   const [pincode, setPincode] = useState('');
   const [latitude, setLatitude] = useState<number | undefined>(undefined);
   const [longitude, setLongitude] = useState<number | undefined>(undefined);
+
+  const handleAddressSelect = (parsed: ParsedAddress) => {
+    if (parsed.line1) setLine1(parsed.line1);
+    if (parsed.area) setArea(parsed.area);
+    if (parsed.city) setCity(parsed.city);
+    if (parsed.state) setState(parsed.state);
+    if (parsed.pincode) setPincode(parsed.pincode);
+    setLatitude(parsed.latitude);
+    setLongitude(parsed.longitude);
+  };
 
   // brokerage
   const [brokerageRequired, setBrokerageRequired] = useState(false);
@@ -352,6 +364,13 @@ export default function AddRoomScreen() {
 
         {/* ── Location ── */}
         <SectionLabel text="Location" />
+        <AddressAutocomplete
+          value={addressQuery}
+          onChangeText={setAddressQuery}
+          onSelect={handleAddressSelect}
+          placeholder="Search area, locality or city…"
+          style={styles.autocompleteWrap}
+        />
         <TextInput
           label="Street / Landmark"
           value={line1}
@@ -515,6 +534,7 @@ const styles = StyleSheet.create({
     marginTop: 20, marginBottom: 10,
   },
 
+  autocompleteWrap: { marginBottom: 12 },
   input: { marginBottom: 10, backgroundColor: '#fff' },
   row2: { flexDirection: 'row', gap: 10 },
 

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   View, StyleSheet, FlatList, ActivityIndicator,
-  TextInput, TouchableOpacity, ScrollView,
+  TouchableOpacity, ScrollView,
   Platform, useWindowDimensions,
 } from 'react-native';
 import { Text } from 'react-native-paper';
@@ -10,6 +10,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { api } from '@/lib/api';
 import type { Room } from '@/lib/types';
 import RoomCard from '@/components/RoomCard';
+import AddressAutocomplete from '@/components/AddressAutocomplete';
 
 const TYPES = [
   { label: '1 BHK', value: 'BHK1' },
@@ -118,22 +119,18 @@ export default function SearchScreen() {
 
       {/* Search row */}
       <View style={styles.searchRow}>
-        <View style={styles.searchBar}>
-          <MaterialCommunityIcons name="magnify" size={18} color="#717171" />
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Area or city…"
-            placeholderTextColor="#AAAAAA"
+        <View style={{ flex: 1 }}>
+          <AddressAutocomplete
             value={query}
             onChangeText={setQuery}
-            onSubmitEditing={() => doSearch()}
-            returnKeyType="search"
+            onSelect={(parsed) => {
+              // Use the most specific field as the search query
+              const q = parsed.area || parsed.city || parsed.displayName;
+              setQuery(q);
+              setTimeout(() => doSearch(true), 100);
+            }}
+            placeholder="Area or city…"
           />
-          {query.length > 0 && (
-            <TouchableOpacity onPress={() => setQuery('')}>
-              <MaterialCommunityIcons name="close-circle" size={16} color="#AAAAAA" />
-            </TouchableOpacity>
-          )}
         </View>
         <TouchableOpacity
           style={[styles.filterToggle, activeFilterCount > 0 && styles.filterToggleActive]}
